@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { getHostLanguage, init } from "@nimiq/mini-app-sdk";
-import { isNimiqPayHost, payEntryFee } from "./client";
+import { getConnectedAccount, isNetworkReady, isNimiqPayHost, payEntryFee } from "./client";
 
 vi.mock("@nimiq/mini-app-sdk", () => ({
   init: vi.fn(),
@@ -65,5 +65,49 @@ describe("payEntryFee", () => {
     const result = await payEntryFee(1, REAL_ADDRESS);
 
     expect(result).toEqual({ ok: false, message: "User rejected the request" });
+  });
+});
+
+describe("getConnectedAccount", () => {
+  test("returns the first account when the wallet resolves a non-empty list", async () => {
+    const listAccounts = vi.fn().mockResolvedValue([REAL_ADDRESS, "NQ07 1111 1111 1111 1111 1111 1111 1111 1111"]);
+    vi.mocked(init).mockResolvedValue({ listAccounts } as never);
+
+    expect(await getConnectedAccount()).toBe(REAL_ADDRESS);
+  });
+
+  test("returns null when the wallet resolves an ErrorResponse instead of a list", async () => {
+    const listAccounts = vi.fn().mockResolvedValue({ error: { type: "denied", message: "no" } });
+    vi.mocked(init).mockResolvedValue({ listAccounts } as never);
+
+    expect(await getConnectedAccount()).toBeNull();
+  });
+
+  test("returns null when the wallet resolves an empty list", async () => {
+    const listAccounts = vi.fn().mockResolvedValue([]);
+    vi.mocked(init).mockResolvedValue({ listAccounts } as never);
+
+    expect(await getConnectedAccount()).toBeNull();
+  });
+
+  test("returns null, not a thrown error, when the request fails outright", async () => {
+    vi.mocked(init).mockRejectedValue(new Error("PermissionDeniedError"));
+
+    expect(await getConnectedAccount()).toBeNull();
+  });
+});
+
+describe("isNetworkReady", () => {
+  test("reflects the provider's consensus state", async () => {
+    const isConsensusEstablished = vi.fn().mockResolvedValue(true);
+    vi.mocked(init).mockResolvedValue({ isConsensusEstablished } as never);
+
+    expect(await isNetworkReady()).toBe(true);
+  });
+
+  test("is false, not a thrown error, when the request fails outright", async () => {
+    vi.mocked(init).mockRejectedValue(new Error("timeout"));
+
+    expect(await isNetworkReady()).toBe(false);
   });
 });

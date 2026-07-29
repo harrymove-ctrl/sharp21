@@ -66,6 +66,26 @@ export function GameWidget({
         <BotVsBot />
       )}
 
+      {mode === "pve" && pve.realMoney && (
+        <div className="shrink-0">
+          {pve.account ? (
+            <span className="sk-body text-[0.65rem]" style={{ color: "rgba(255,255,255,0.5)" }}>
+              Connected: {pve.account.split(" ")[0]}…{pve.account.split(" ").slice(-1)[0]}
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="sk-body text-[0.65rem] underline"
+              style={{ color: "rgba(255,255,255,0.6)" }}
+              onClick={pve.connectWallet}
+              disabled={pve.connecting}
+            >
+              {pve.connecting ? "Connecting…" : "Show connected wallet"}
+            </button>
+          )}
+        </div>
+      )}
+
       <p
         className="sk-body text-[0.65rem] leading-tight text-center max-w-sm shrink-0"
         style={{ color: "rgba(255,255,255,0.5)" }}

@@ -3,12 +3,13 @@ import { getHostLanguage, init, requestDeviceIdentifier } from "@nimiq/mini-app-
 const LUNA_PER_NIM = 100_000;
 
 /**
- * TODO(real treasury): this must be replaced with the project's actual NIM
- * receiving address before any real entry fee is collected. A wrong or
- * placeholder address here would send real user funds nowhere recoverable -
- * do not remove this guard without setting a real address first.
+ * Nimiq PoS *testnet* treasury address (funded via the testnet faucet -
+ * zero real value). Fine for exercising the real payment flow end-to-end
+ * inside Nimiq Pay's testnet mode. Must be swapped for a real mainnet
+ * address, generated and held by the project owner, before this ever
+ * collects real entry fees - do not repurpose this one for that.
  */
-export const TREASURY_ADDRESS = "REPLACE_WITH_REAL_TREASURY_NIM_ADDRESS";
+export const TREASURY_ADDRESS = "NQ88 1JXU LCMY 92X0 VY6J SXXS 1VSY XLLB 5TVF";
 
 /**
  * Synchronous, safe-to-call-anytime check for whether we're actually running
@@ -23,6 +24,39 @@ export function isNimiqPayHost(): boolean {
 
 export async function getDeviceId(): Promise<string> {
   return requestDeviceIdentifier({ reason: "Rank you on the Sharp21 skill leaderboard" });
+}
+
+/**
+ * Resolves the user's first connected Nimiq address, or null if the wallet
+ * has none, refuses (an ErrorResponse), or the request fails outright (e.g.
+ * the user declines the confirmation prompt). Never throws - this is a
+ * best-effort "who's connected" display, not a required step.
+ */
+export async function getConnectedAccount(): Promise<string | null> {
+  try {
+    const provider = await init({ timeout: 4000 });
+    const accounts = await provider.listAccounts();
+    if (Array.isArray(accounts) && accounts.length > 0) {
+      return accounts[0];
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether the Nimiq network's consensus is established, checked as a
+ * pre-flight before requesting payment so a not-ready network surfaces as a
+ * clear message instead of an opaque hang or failure inside sendBasicTransaction.
+ */
+export async function isNetworkReady(): Promise<boolean> {
+  try {
+    const provider = await init({ timeout: 4000 });
+    return await provider.isConsensusEstablished();
+  } catch {
+    return false;
+  }
 }
 
 export type PaymentResult = { ok: true; txHash: string } | { ok: false; message: string };
