@@ -13,7 +13,7 @@ const STEP_MS = 900;
  * bot always playing optimally would trivially top a real leaderboard.
  */
 export function BotVsBot() {
-  const { state, bet, hit, stand, deal } = useBlackjack();
+  const { state, bet, hit, stand, deal } = useBlackjack({ demoOnly: true });
   const latest = useRef({ state, bet, hit, stand, deal });
   latest.current = { state, bet, hit, stand, deal };
 

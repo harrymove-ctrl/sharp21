@@ -51,7 +51,15 @@ export function GameWidget({
             <Table state={pve.state} />
           </div>
           <div className="shrink-0">
-            <Hud state={pve.state} onBet={pve.bet} onHit={pve.hit} onStand={pve.stand} onDeal={pve.deal} />
+            <Hud
+              state={pve.state}
+              payment={pve.payment}
+              onBet={pve.bet}
+              onHit={pve.hit}
+              onStand={pve.stand}
+              onDeal={pve.deal}
+              onDismissPaymentError={pve.dismissPaymentError}
+            />
           </div>
         </>
       ) : (
@@ -62,8 +70,11 @@ export function GameWidget({
         className="sk-body text-[0.65rem] leading-tight text-center max-w-sm shrink-0"
         style={{ color: "rgba(255,255,255,0.5)" }}
       >
-        Demo build — wallet payment not wired up yet. Only decision accuracy (above) will
-        determine real payouts.
+        {mode === "bots"
+          ? "Spectate mode — no wallet, no entry fee, purely illustrative."
+          : pve.realMoney
+            ? "Connected to Nimiq Pay — entry fees are real NIM."
+            : "Open inside Nimiq Pay to play with real NIM. Outside it, this is a local demo only."}
       </p>
     </div>
   );
