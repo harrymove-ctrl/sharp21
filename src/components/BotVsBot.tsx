@@ -39,9 +39,6 @@ export function BotVsBot() {
 
   return (
     <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center gap-2">
-      <div className="sk-eyebrow text-[0.65rem] opacity-70 text-center">
-        Demo — two bots play, nothing is at stake
-      </div>
       <div className="flex-1 min-h-0 w-full flex items-center justify-center">
         <Table state={state} showScore={false} playerLabel="Bot" />
       </div>

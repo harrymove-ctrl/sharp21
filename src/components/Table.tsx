@@ -16,7 +16,12 @@ export function Table({
     <div className="sk-felt relative h-full w-auto max-w-full aspect-[5/8] mx-auto rounded-[28px] overflow-hidden">
       {showScore && (
         <div className="absolute top-[3%] left-1/2 -translate-x-1/2">
-          <ScoreBadge correct={state.correctDecisions} total={state.totalDecisions} hands={state.handsPlayed} />
+          <ScoreBadge
+            correct={state.correctDecisions}
+            total={state.totalDecisions}
+            hands={state.handsPlayed}
+            lastDecision={state.handDecisions[state.handDecisions.length - 1]}
+          />
         </div>
       )}
 

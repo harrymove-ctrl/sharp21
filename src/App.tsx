@@ -36,6 +36,12 @@ export default function App() {
         </button>
       </div>
 
+      <div className="sk-eyebrow text-[0.6rem] opacity-80 text-center max-w-xs shrink-0">
+        {mode === "pve"
+          ? "Hit or stand correctly, not just win — your NIM payout tracks decision accuracy, never a hand's outcome"
+          : "Demo only: two bots auto-play basic strategy, nothing is at stake"}
+      </div>
+
       {mode === "pve" ? (
         <>
           <div className="flex-1 min-h-0 w-full flex items-center justify-center">

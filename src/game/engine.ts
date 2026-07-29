@@ -9,6 +9,7 @@ export interface DecisionRecord {
   isSoft: boolean;
   dealerUpcard: number;
   action: Action;
+  optimal: Action;
   wasCorrect: boolean;
 }
 
@@ -48,7 +49,7 @@ function recordDecision(state: GameState, action: Action): DecisionRecord {
   const hv = handValue(state.playerHand);
   const dealerUpcard = state.dealerHand[0].rank;
   const optimal = optimalAction(hv.total, hv.isSoft, dealerUpcard);
-  return { total: hv.total, isSoft: hv.isSoft, dealerUpcard, action, wasCorrect: optimal === action };
+  return { total: hv.total, isSoft: hv.isSoft, dealerUpcard, action, optimal, wasCorrect: optimal === action };
 }
 
 export function placeBet(state: GameState, wager: number): GameState {
