@@ -1,0 +1,185 @@
+:root {
+  --sk-ink: #23221f;
+  --sk-ink-soft: rgba(35, 34, 31, 0.6);
+  --sk-paper: #fbf9f3;
+  --sk-felt: #2f9e44;
+  --sk-felt-fill: #eaf8ee;
+  --sk-red: #e03131;
+  --sk-blue: #1971c2;
+  --sk-violet: #6741d9;
+  --sk-amber: #e8920c;
+  --sk-amber-fill: #ffe9bd;
+  --sk-good: #2f9e44;
+  --sk-font: "Gochi Hand", "Comic Sans MS", cursive;
+}
+
+/* Tailwind v4 puts its own utilities in cascade layers (theme/base/components/
+   utilities). Unlayered CSS always wins over layered CSS regardless of source
+   order or specificity - so these component classes must live in the same
+   `components` layer Tailwind declares, or every Tailwind size utility paired
+   with them (text-xs, text-2xl, ...) gets silently overridden. */
+@layer components {
+  .sk-root {
+    font-family: var(--sk-font);
+    color: var(--sk-ink);
+  }
+
+  /* Buttons/chips are tap targets, not text — selecting their labels on a
+     click-drag or double-tap reads as a rendering glitch (a stray highlight
+     box), not an interaction. */
+  .sk-btn,
+  .sk-chip {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Rough hand-drawn border: a displaced ::before layer, kept separate from crisp content. */
+  .sk-panel {
+    position: relative;
+    background: var(--sk-paper);
+  }
+  .sk-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--sk-ink);
+    border-radius: 14px;
+    filter: url(#skRough);
+    pointer-events: none;
+  }
+
+  .sk-btn {
+    position: relative;
+    font-family: var(--sk-font);
+    padding: 0.5rem 1.25rem;
+    background: var(--sk-paper);
+    color: var(--sk-ink);
+    border: none;
+    cursor: pointer;
+    transition: transform 120ms ease;
+  }
+  .sk-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--sk-ink);
+    border-radius: 10px;
+    filter: url(#skRough);
+    pointer-events: none;
+  }
+  .sk-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+  .sk-btn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  .sk-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .sk-btn--primary {
+    background: var(--sk-felt-fill);
+  }
+  .sk-btn--amber {
+    background: var(--sk-amber-fill);
+  }
+
+  .sk-eyebrow {
+    font-family: var(--sk-font);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sk-amber);
+  }
+
+  .sk-title {
+    font-family: var(--sk-font);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .sk-felt {
+    background: radial-gradient(120% 100% at 50% 0%, var(--sk-felt-fill) 0%, var(--sk-felt) 70%);
+    border: 3px solid var(--sk-ink);
+  }
+
+  .sk-card {
+    width: clamp(2.6rem, 9vw, 4.2rem);
+    height: clamp(3.6rem, 12.6vw, 5.9rem);
+    border-radius: 8px;
+    background: var(--sk-paper);
+    border: 2px solid var(--sk-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1rem, 3.2vw, 1.6rem);
+    font-weight: 700;
+    color: var(--sk-ink);
+    box-shadow: 2px 2px 0 rgba(35, 34, 31, 0.15);
+    flex-shrink: 0;
+  }
+  .sk-card--red {
+    color: var(--sk-red);
+  }
+  .sk-card--back {
+    background: repeating-linear-gradient(
+      45deg,
+      var(--sk-blue),
+      var(--sk-blue) 6px,
+      var(--sk-paper) 6px,
+      var(--sk-paper) 12px
+    );
+    border: 2px solid var(--sk-ink);
+  }
+
+  .sk-chip {
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 9999px;
+    border: 3px dashed rgba(255, 255, 255, 0.75);
+    color: white;
+    font-family: var(--sk-font);
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+    transition: transform 120ms ease;
+  }
+  .sk-chip:hover:not(:disabled) {
+    transform: translateY(-3px);
+  }
+  .sk-chip:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .sk-fade-in-up {
+    animation: sk-fade-in-up 300ms ease-out;
+  }
+
+  .sk-chip-pop {
+    animation: sk-chip-pop 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+@keyframes sk-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sk-chip-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
