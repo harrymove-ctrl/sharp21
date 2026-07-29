@@ -40,7 +40,7 @@ export function Table({
           </div>
         ) : hasHand ? (
           <div className="sk-panel px-4 py-1.5">
-            <span className="sk-eyebrow text-xs">Wager: {state.wager}</span>
+            <span className="sk-eyebrow text-xs">Wager: {state.wager} NIM</span>
           </div>
         ) : (
           <div className="sk-eyebrow text-xs opacity-60">Place your bet</div>

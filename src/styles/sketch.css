@@ -17,6 +17,16 @@
   color: var(--sk-ink);
 }
 
+/* Buttons/chips are tap targets, not text — selecting their labels on a
+   click-drag or double-tap reads as a rendering glitch (a stray highlight
+   box), not an interaction. */
+.sk-btn,
+.sk-chip {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Rough hand-drawn border: a displaced ::before layer, kept separate from crisp content. */
 .sk-panel {
   position: relative;
