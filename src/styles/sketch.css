@@ -50,10 +50,14 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Rough hand-drawn border: a displaced ::before layer, kept separate from crisp content. */
+  /* Rough hand-drawn border: a displaced ::before layer, kept separate from crisp content.
+     The base element needs the SAME border-radius as its ::before overlay - otherwise its
+     own square-cornered background fill pokes out past the rounded hand-drawn border. */
   .sk-panel {
     position: relative;
     background: var(--sk-paper);
+    border-radius: 14px;
+    overflow: hidden;
   }
   .sk-panel::before {
     content: "";
@@ -72,6 +76,8 @@
     background: var(--sk-paper);
     color: var(--sk-ink);
     border: none;
+    border-radius: 10px;
+    overflow: hidden;
     cursor: pointer;
     transition: transform 120ms ease;
   }

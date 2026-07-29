@@ -95,14 +95,6 @@ function Sidebar() {
         </ol>
       </div>
       <div className="sk-panel p-5">
-        <div className="sk-eyebrow text-sm mb-2">Why not gambling?</div>
-        <p className="sk-body text-sm leading-relaxed" style={{ color: "var(--sk-ink-soft)" }}>
-          No side is ever paid because another side lost a hand. Everyone is scored independently
-          against one published, deterministic rule — the shape the competition's rules require
-          for "skill-based games," as distinct from games of chance.
-        </p>
-      </div>
-      <div className="sk-panel p-5">
         <div className="sk-eyebrow text-sm mb-2">Quick strategy reference</div>
         <p className="sk-body text-sm leading-relaxed" style={{ color: "var(--sk-ink-soft)" }}>
           Hard 12–16 vs. dealer 2–6: stand. Vs. dealer 7–Ace: hit. Anything 11 or under: always
