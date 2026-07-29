@@ -1,5 +1,6 @@
 import type { useBlackjack } from "../hooks/useBlackjack";
 import { GameWidget, type Mode } from "./GameWidget";
+import { Leaderboard } from "./Leaderboard";
 
 const REPO_URL = "https://github.com/harrymove-ctrl/sharp21";
 const COMPETITION_URL = "https://miniappscompetition.com";
@@ -79,6 +80,7 @@ function Hero() {
 function Sidebar() {
   return (
     <aside id="how-it-works" className="flex flex-col gap-4">
+      <Leaderboard />
       <div className="sk-panel p-5">
         <div className="sk-eyebrow text-sm mb-2">How payouts work</div>
         <ol

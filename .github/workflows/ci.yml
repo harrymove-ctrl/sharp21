@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        working-directory: sharp21
+        run: npm ci
+      - name: Type-check
+        working-directory: sharp21
+        run: npx tsc -b
+      - name: Test
+        working-directory: sharp21
+        run: npm test
+      - name: Build
+        working-directory: sharp21
+        run: npx vite build --base=/sharp21/
+      - name: Fail if the frontend bundle contains anything secret-shaped
+        working-directory: sharp21
+        run: |
+          set -euo pipefail
+          # Specific identifiers only the signer script/backend would ever
+          # reference - NOT the plain English word "payout", which
+          # legitimately appears in the app's own UI copy ("How payouts
+          # work") and would false-positive on every build.
+          if grep -rEIlq "TREASURY_PRIVATE_KEY|treasuryPrivateKey|SHARP21_TREASURY_KEY_PATH|PAYOUT_CONFIRM_TOKEN|PAYOUT_READ_TOKEN" dist/; then
+            echo "::error::Found a treasury/payout-auth identifier in the frontend bundle (dist/). This must never ship to the browser."
+            exit 1
+          fi
+          # A bare 64-hex-char run is exactly what a raw Nimiq private key
+          # looks like serialized - flag it even if nothing else matches.
+          if grep -rEIoq "[0-9a-fA-F]{64}" dist/assets/*.js dist/assets/*.css 2>/dev/null; then
+            echo "::error::Found a 64-hex-character string in the frontend bundle - this is exactly what a raw private key looks like serialized. Investigate before merging."
+            exit 1
+          fi
+          echo "No secret-shaped strings found in dist/."
+
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        working-directory: sharp21/server
+        run: npm ci
+      - name: Type-check
+        working-directory: sharp21/server
+        run: npx tsc -b
+      - name: Test
+        working-directory: sharp21/server
+        run: npm test
+
+  payout-signer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        working-directory: sharp21/scripts/payout
+        run: npm install
+      - name: Type-check
+        working-directory: sharp21/scripts/payout
+        run: npx tsc --noEmit
