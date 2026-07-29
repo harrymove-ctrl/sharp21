@@ -11,6 +11,7 @@
   --sk-amber-fill: #ffe9bd;
   --sk-good: #2f9e44;
   --sk-font: "Gochi Hand", "Comic Sans MS", cursive;
+  --sk-font-body: "Outfit", ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Tailwind v4 puts its own utilities in cascade layers (theme/base/components/
@@ -22,6 +23,21 @@
   .sk-root {
     font-family: var(--sk-font);
     color: var(--sk-ink);
+  }
+
+  /* Longer-form copy: the handwritten display font is illegible at paragraph
+     length, so web-landing body text uses a plain readable sans instead. */
+  .sk-body {
+    font-family: var(--sk-font-body);
+  }
+
+  .sk-link {
+    font-family: var(--sk-font-body);
+    color: var(--sk-amber);
+    text-decoration: none;
+  }
+  .sk-link:hover {
+    text-decoration: underline;
   }
 
   /* Buttons/chips are tap targets, not text — selecting their labels on a
