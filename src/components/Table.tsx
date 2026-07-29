@@ -2,15 +2,25 @@ import type { GameState } from "../game/engine";
 import { Hand } from "./Hand";
 import { ScoreBadge } from "./ScoreBadge";
 
-export function Table({ state }: { state: GameState }) {
+export function Table({
+  state,
+  showScore = true,
+  playerLabel = "You",
+}: {
+  state: GameState;
+  showScore?: boolean;
+  playerLabel?: string;
+}) {
   const hasHand = state.playerHand.length > 0;
   return (
-    <div className="sk-felt relative w-full aspect-[5/8] max-w-md mx-auto rounded-[28px] overflow-hidden">
-      <div className="absolute top-[3%] left-1/2 -translate-x-1/2">
-        <ScoreBadge correct={state.correctDecisions} total={state.totalDecisions} hands={state.handsPlayed} />
-      </div>
+    <div className="sk-felt relative h-full w-auto max-w-full aspect-[5/8] mx-auto rounded-[28px] overflow-hidden">
+      {showScore && (
+        <div className="absolute top-[3%] left-1/2 -translate-x-1/2">
+          <ScoreBadge correct={state.correctDecisions} total={state.totalDecisions} hands={state.handsPlayed} />
+        </div>
+      )}
 
-      <div className="absolute top-[28%] left-1/2 -translate-x-1/2">
+      <div className={`absolute ${showScore ? "top-[28%]" : "top-[8%]"} left-1/2 -translate-x-1/2`}>
         {hasHand ? (
           <Hand cards={state.dealerHand} hideSecond={state.dealerHoleHidden} label="Dealer" />
         ) : (
@@ -39,9 +49,9 @@ export function Table({ state }: { state: GameState }) {
 
       <div className="absolute bottom-[16%] left-1/2 -translate-x-1/2">
         {hasHand ? (
-          <Hand cards={state.playerHand} label="You" />
+          <Hand cards={state.playerHand} label={playerLabel} />
         ) : (
-          <div className="sk-eyebrow text-xs opacity-60">You</div>
+          <div className="sk-eyebrow text-xs opacity-60">{playerLabel}</div>
         )}
       </div>
     </div>
