@@ -12,7 +12,9 @@ Plays like real Blackjack — same table, same hit/stand flow, same dealer rules
 
 ## Status
 
-This is the UI + client-side game engine only. Still to come: NIM entry-fee payment via `@nimiq/mini-app-sdk`, server-authoritative hand dealing, the leaderboard, and the one-time end-of-window payout job.
+- **Real, working:** the game engine, the UI (mini-app + web), and NIM entry-fee payment via `@nimiq/mini-app-sdk`'s `sendBasicTransaction` — when opened inside Nimiq Pay, tapping a bet chip requests a real wallet confirmation. Outside Nimiq Pay (a plain browser), the same UI falls back to a local demo automatically.
+- **Blocked on a real treasury address:** `src/nimiq/client.ts`'s `TREASURY_ADDRESS` is still a placeholder, so even inside Nimiq Pay, payment requests currently refuse to fire rather than send funds somewhere wrong.
+- **Not yet built:** server-authoritative hand dealing/grading (client-side decision scoring can currently be spoofed via devtools), the leaderboard, and the one-time end-of-window payout job — all need a backend, which needs a hosting decision.
 
 ## Development
 
