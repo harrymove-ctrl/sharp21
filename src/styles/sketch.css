@@ -117,18 +117,27 @@
   .sk-felt {
     background: radial-gradient(120% 100% at 50% 0%, var(--sk-felt-fill) 0%, var(--sk-felt) 70%);
     border: 3px solid var(--sk-ink);
+    /* Establishes a query container so card size below can scale with the
+       felt's actual rendered width, not the page's viewport width - the two
+       differ once the same table renders inside a narrower panel (web
+       landing) instead of filling the whole screen (mini-app view). */
+    container-type: inline-size;
   }
 
   .sk-card {
-    width: clamp(2.6rem, 9vw, 4.2rem);
-    height: clamp(3.6rem, 12.6vw, 5.9rem);
+    /* cqw = % of the felt's own width, not the viewport's - vw broke the
+       moment this component started rendering inside a narrower container
+       than the full page (cards stayed pinned to max size, cramped against
+       each other in the smaller box). */
+    width: clamp(2.6rem, 15cqw, 4.6rem);
+    height: clamp(3.6rem, 21cqw, 6.4rem);
     border-radius: 8px;
     background: var(--sk-paper);
     border: 2px solid var(--sk-ink);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(1rem, 3.2vw, 1.6rem);
+    font-size: clamp(1rem, 5.4cqw, 1.7rem);
     font-weight: 700;
     color: var(--sk-ink);
     box-shadow: 2px 2px 0 rgba(35, 34, 31, 0.15);

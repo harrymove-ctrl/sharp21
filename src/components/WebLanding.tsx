@@ -23,8 +23,8 @@ export function WebLanding({
         className="max-w-6xl mx-auto px-6 pb-16 grid grid-cols-1 md:grid-cols-[1fr_360px] gap-8 items-start"
       >
         <div
-          className="sk-panel p-6 flex items-center justify-center w-full"
-          style={{ height: "min(640px, 80vh)" }}
+          className="sk-panel p-8 flex items-center justify-center w-full"
+          style={{ height: "min(880px, 85vh)" }}
         >
           <GameWidget mode={mode} setMode={setMode} pve={pve} />
         </div>
