@@ -30,7 +30,7 @@ export function rankLabel(rank: number): string {
   return String(rank);
 }
 
-// Infinite deck with replacement — matches the dopamint reference (no shoe/penetration model).
+// Infinite deck with replacement (no shoe/penetration model).
 export function drawCard(): PlayingCard {
   const rank = 1 + Math.floor(Math.random() * 13);
   const suit = SUITS[Math.floor(Math.random() * SUITS.length)];

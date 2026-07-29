@@ -1,9 +1,9 @@
 export type Action = "hit" | "stand";
 
 /**
- * Simplified basic strategy for a hit/stand-only variant (no double/split available,
- * matching dopamint's live rule set). Where standard basic strategy would double,
- * the strategy-equivalent action here is whatever basic strategy falls back to
+ * Simplified basic strategy for a hit/stand-only variant (no double/split
+ * available). Where standard basic strategy would double, the
+ * strategy-equivalent action here is whatever basic strategy falls back to
  * without doubling — verified per-case below, not just "always hit".
  */
 export function optimalAction(total: number, isSoft: boolean, dealerUpcard: number): Action {
