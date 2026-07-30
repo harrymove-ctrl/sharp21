@@ -11,11 +11,26 @@ export interface RecordHandBody {
   payoutAddress: string;
 }
 
+/** Mini-app path: a 64-char hex device identifier from requestDeviceIdentifier(). */
+function isDeviceId(s: string): boolean {
+  return /^[0-9a-fA-F]{64}$/.test(s);
+}
+
+/**
+ * Scan-to-pay path: no device identifier is available outside Nimiq Pay, so
+ * the paying wallet's own address is used as the leaderboard identity
+ * instead - a fine, stable key in its own right. "NQ" + 2 check digits + 32
+ * base32-ish chars, spaces stripped before checking.
+ */
+function isNimiqAddressLike(s: string): boolean {
+  return /^NQ\d{2}[0-9A-Z]{32}$/i.test(s.replace(/ /g, ""));
+}
+
 export function validateHandBody(body: unknown): { ok: true; value: RecordHandBody } | { ok: false; error: string } {
   if (typeof body !== "object" || body === null) return { ok: false, error: "body must be an object" };
   const b = body as Record<string, unknown>;
-  if (typeof b.deviceId !== "string" || b.deviceId.length !== 64) {
-    return { ok: false, error: "deviceId must be a 64-char device identifier" };
+  if (typeof b.deviceId !== "string" || !(isDeviceId(b.deviceId) || isNimiqAddressLike(b.deviceId))) {
+    return { ok: false, error: "deviceId must be a 64-char device identifier or a Nimiq wallet address" };
   }
   if (typeof b.correctDecisions !== "number" || !Number.isInteger(b.correctDecisions) || b.correctDecisions < 0) {
     return { ok: false, error: "correctDecisions must be a non-negative integer" };

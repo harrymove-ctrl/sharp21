@@ -20,9 +20,14 @@ describe("validateHandBody", () => {
     expect(validateHandBody(null)).toEqual({ ok: false, error: expect.any(String) });
   });
 
-  test("rejects a deviceId that isn't a 64-char identifier", () => {
+  test("rejects a deviceId that's neither a 64-char identifier nor a Nimiq address", () => {
     const result = validateHandBody({ ...VALID, deviceId: "too-short" });
     expect(result.ok).toBe(false);
+  });
+
+  test("accepts a Nimiq wallet address as deviceId - the identity scan-to-pay players report instead", () => {
+    const withAddress = { ...VALID, deviceId: "NQ07 0000 0000 0000 0000 0000 0000 0000 0000" };
+    expect(validateHandBody(withAddress)).toEqual({ ok: true, value: withAddress });
   });
 
   test("rejects totalDecisions less than correctDecisions - a physically impossible hand", () => {

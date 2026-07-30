@@ -1,8 +1,10 @@
+import { useState } from "react";
 import type { useBlackjack } from "../hooks/useBlackjack";
 import { Table } from "./Table";
 import { Hud } from "./Hud";
 import { BotVsBot } from "./BotVsBot";
 import { OpenNimiqPay } from "./OpenNimiqPay";
+import { ScanToPay } from "./ScanToPay";
 
 export type Mode = "pve" | "bots";
 
@@ -63,22 +65,18 @@ export function GameWidget({
                 onStand={pve.stand}
                 onDeal={pve.deal}
                 onDismissPaymentError={pve.dismissPaymentError}
+                usingScanToPay={pve.usingScanToPay}
+                onScannedPaid={pve.confirmScannedPayment}
               />
             </div>
           </>
         ) : (
-          // No local demo here on purpose - Nimiq mini-apps only connect a
-          // wallet from inside Nimiq Pay itself (unlike a regular web dApp,
-          // there's no browser-based connect flow to fall back to), so
-          // playing for real is gated behind actually getting there.
+          // Nimiq mini-apps only connect a wallet from inside Nimiq Pay
+          // itself, so playing from a plain browser goes through "scan to
+          // pay" instead: Nimiq Pay's own QR scanner completes the payment
+          // wallet-to-wallet, no mini-app load required on that side at all.
           <div className="flex-1 min-h-0 w-full flex items-center justify-center">
-            <div className="sk-panel px-6 py-8 flex flex-col items-center gap-3 text-center max-w-xs">
-              <div className="sk-title text-lg">Connect your wallet to play</div>
-              <p className="sk-body text-sm" style={{ color: "var(--sk-ink-soft)" }}>
-                Sharp21 is a Nimiq Pay mini-app. Open it there to connect your wallet and play.
-              </p>
-              <OpenNimiqPay />
-            </div>
+            <PlayGate onScannedPaid={pve.confirmScannedPayment} />
           </div>
         )
       ) : (
@@ -112,9 +110,54 @@ export function GameWidget({
         >
           {mode === "bots"
             ? "Spectate mode — no wallet, no entry fee, purely illustrative."
-            : "Connected to Nimiq Pay — entry fees are real NIM."}
+            : mode === "pve" && pve.usingScanToPay
+              ? "Paid via scan-to-pay — entry fees are real NIM."
+              : "Connected to Nimiq Pay — entry fees are real NIM."}
         </p>
       )}
+    </div>
+  );
+}
+
+type GateTab = "scan" | "open";
+
+/**
+ * Shown outside Nimiq Pay in place of the table/HUD: two independent paths
+ * to a real hand, since neither works for everyone - "Open in Nimiq Pay"
+ * needs the app installed on THIS device, "Scan to pay" needs a phone with
+ * Nimiq Pay nearby (the common case when testing from a desktop browser).
+ */
+function PlayGate({
+  onScannedPaid,
+}: {
+  onScannedPaid: (payment: { wagerLuna: number; txHash: string; senderAddress: string }) => void;
+}) {
+  const [tab, setTab] = useState<GateTab>("scan");
+  return (
+    <div className="sk-panel px-6 py-8 flex flex-col items-center gap-4 text-center max-w-xs">
+      <div>
+        <div className="sk-title text-lg">Connect your wallet to play</div>
+        <p className="sk-body text-sm mt-1" style={{ color: "var(--sk-ink-soft)" }}>
+          Sharp21 is a Nimiq Pay mini-app. Scan with your phone, or open it there directly.
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          className={`sk-btn text-sm ${tab === "scan" ? "sk-btn--primary" : ""}`}
+          onClick={() => setTab("scan")}
+        >
+          Scan to pay
+        </button>
+        <button
+          type="button"
+          className={`sk-btn text-sm ${tab === "open" ? "sk-btn--primary" : ""}`}
+          onClick={() => setTab("open")}
+        >
+          Open in Nimiq Pay
+        </button>
+      </div>
+      {tab === "scan" ? <ScanToPay onPaid={onScannedPaid} /> : <OpenNimiqPay />}
     </div>
   );
 }

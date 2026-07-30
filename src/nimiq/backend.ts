@@ -39,3 +39,24 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   const data = (await res.json()) as { leaderboard: LeaderboardEntry[] };
   return data.leaderboard;
 }
+
+export interface DetectedPayment {
+  found: boolean;
+  txHash?: string;
+  senderAddress?: string;
+}
+
+/** Poll target for the "scan to pay" flow - see server/src/pay.ts for the matching strategy. */
+export async function detectPayment(params: {
+  nonce: string;
+  amountLuna: number;
+  sinceMs: number;
+}): Promise<DetectedPayment> {
+  const url = new URL(`${BACKEND_URL}/api/pay/detect`);
+  url.searchParams.set("nonce", params.nonce);
+  url.searchParams.set("amountLuna", String(params.amountLuna));
+  url.searchParams.set("sinceMs", String(params.sinceMs));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`Failed to check payment status: ${res.status}`);
+  return (await res.json()) as DetectedPayment;
+}

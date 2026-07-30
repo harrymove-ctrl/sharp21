@@ -3,6 +3,7 @@ import { getPool } from "./db.js";
 import { createHandsRouteHandler } from "./routes/hands.js";
 import { createLeaderboardRouteHandler } from "./routes/leaderboardRoute.js";
 import { createGetPayoutBatchHandler, createConfirmPayoutBatchHandler } from "./routes/payoutRoute.js";
+import { createDetectPaymentHandler } from "./routes/payDetectRoute.js";
 
 const app = express();
 app.use(express.json());
@@ -28,6 +29,7 @@ app.post("/api/hands", createHandsRouteHandler(pool));
 app.get("/api/leaderboard", createLeaderboardRouteHandler(pool));
 app.get("/api/payout-batch", createGetPayoutBatchHandler(pool));
 app.post("/api/payout-batch/:batchId/confirm", createConfirmPayoutBatchHandler(pool));
+app.get("/api/pay/detect", createDetectPaymentHandler());
 
 const port = Number(process.env.PORT) || 3000;
 app.listen(port, () => {

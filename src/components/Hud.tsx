@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BET_OPTIONS, type GameState } from "../game/engine";
 import type { PaymentStatus } from "../hooks/useBlackjack";
 import { Chip } from "./Chip";
+import { ScanToPay } from "./ScanToPay";
 
 // Must match Table.tsx's reveal-choreography constants so "Deal again"
 // fades in around the same moment the result panel finishes appearing,
@@ -17,6 +18,8 @@ export function Hud({
   onStand,
   onDeal,
   onDismissPaymentError,
+  usingScanToPay,
+  onScannedPaid,
 }: {
   state: GameState;
   payment: PaymentStatus;
@@ -25,6 +28,11 @@ export function Hud({
   onStand: () => void;
   onDeal: () => void;
   onDismissPaymentError: () => void;
+  /** Once a scan-to-pay payment has been made, every hand's entry fee goes
+   *  through the QR flow instead of the in-app chip-tap flow, so betting
+   *  renders ScanToPay here rather than the normal chip row. */
+  usingScanToPay: boolean;
+  onScannedPaid: (payment: { wagerLuna: number; txHash: string; senderAddress: string }) => void;
 }) {
   // Bumped on every click so a fresh <span> mounts each time, replaying the
   // tap-ripple animation - a stronger, click-tied response than the
@@ -33,6 +41,10 @@ export function Hud({
   const [standPulse, setStandPulse] = useState(0);
 
   if (state.phase === "betting") {
+    if (usingScanToPay) {
+      return <ScanToPay onPaid={onScannedPaid} />;
+    }
+
     if (payment.kind === "pending") {
       return (
         <div className="flex flex-col items-center gap-1 py-2">

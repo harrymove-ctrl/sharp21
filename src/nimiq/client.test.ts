@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { getHostLanguage, init } from "@nimiq/mini-app-sdk";
-import { getConnectedAccount, isNetworkReady, isNimiqPayHost, payEntryFee } from "./client";
+import { __resetProviderCacheForTests, getConnectedAccount, isNetworkReady, isNimiqPayHost, payEntryFee } from "./client";
 
 vi.mock("@nimiq/mini-app-sdk", () => ({
   init: vi.fn(),
@@ -13,6 +13,10 @@ const REAL_ADDRESS = "NQ07 0000 0000 0000 0000 0000 0000 0000 0000";
 beforeEach(() => {
   vi.mocked(init).mockReset();
   vi.mocked(getHostLanguage).mockReset();
+  // getProvider() memoizes across calls within a test (by design - see its
+  // own comment), which would otherwise leak one test's init() mock into
+  // the next test in this file.
+  __resetProviderCacheForTests();
 });
 
 describe("isNimiqPayHost", () => {

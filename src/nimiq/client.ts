@@ -1,6 +1,6 @@
 import { getHostLanguage, init, requestDeviceIdentifier } from "@nimiq/mini-app-sdk";
 
-const LUNA_PER_NIM = 100_000;
+export const LUNA_PER_NIM = 100_000;
 
 /**
  * Nimiq PoS *testnet* treasury address (funded via the testnet faucet -
@@ -43,6 +43,14 @@ function getProvider() {
     });
   }
   return providerPromise;
+}
+
+/** Test-only: the memoization above is exactly what real usage wants (one
+ *  handshake per session), but it means each test's `init()` mock would
+ *  otherwise leak into every later test in the same file - clear it between
+ *  cases instead. Not meant to be called from application code. */
+export function __resetProviderCacheForTests(): void {
+  providerPromise = null;
 }
 
 /**
