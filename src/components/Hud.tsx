@@ -20,6 +20,11 @@ export function Hud({
   onDismissPaymentError,
   usingScanToPay,
   onScannedPaid,
+  onDouble,
+  onSurrender,
+  onTakeInsurance,
+  onDeclineInsurance,
+  canDoubleOrSurrender,
 }: {
   state: GameState;
   payment: PaymentStatus;
@@ -33,12 +38,36 @@ export function Hud({
    *  renders ScanToPay here rather than the normal chip row. */
   usingScanToPay: boolean;
   onScannedPaid: (payment: { wagerLuna: number; txHash: string; senderAddress: string }) => void;
+  onDouble: () => void;
+  onSurrender: () => void;
+  onTakeInsurance: () => void;
+  onDeclineInsurance: () => void;
+  canDoubleOrSurrender: boolean;
 }) {
   // Bumped on every click so a fresh <span> mounts each time, replaying the
   // tap-ripple animation - a stronger, click-tied response than the
   // existing generic hover lift.
   const [hitPulse, setHitPulse] = useState(0);
   const [standPulse, setStandPulse] = useState(0);
+
+  if (state.phase === "insurance") {
+    return (
+      <div className="flex flex-col items-center gap-2 py-2">
+        <div className="sk-eyebrow text-[0.6rem] opacity-80 text-center max-w-[16rem]">
+          Dealer shows an Ace. Insurance pays if they have blackjack — but it's a losing bet for a
+          skill-based player either way.
+        </div>
+        <div className="flex items-center justify-center gap-3">
+          <button type="button" className="sk-btn sk-btn--primary sk-btn--tap text-sm" onClick={onDeclineInsurance}>
+            No insurance
+          </button>
+          <button type="button" className="sk-btn sk-btn--tap text-sm" onClick={onTakeInsurance}>
+            Take insurance
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (state.phase === "betting") {
     if (usingScanToPay) {
@@ -83,27 +112,39 @@ export function Hud({
 
   if (state.phase === "player-turn") {
     return (
-      <div className="flex items-center justify-center gap-3 py-4">
-        <button
-          className="sk-btn sk-btn--primary sk-btn--tap relative"
-          onClick={() => {
-            setHitPulse((p) => p + 1);
-            onHit();
-          }}
-        >
-          Hit
-          {hitPulse > 0 && <span key={hitPulse} className="sk-btn-ripple" aria-hidden="true" />}
-        </button>
-        <button
-          className="sk-btn sk-btn--amber sk-btn--tap relative"
-          onClick={() => {
-            setStandPulse((p) => p + 1);
-            onStand();
-          }}
-        >
-          Stand
-          {standPulse > 0 && <span key={standPulse} className="sk-btn-ripple" aria-hidden="true" />}
-        </button>
+      <div className="flex flex-col items-center gap-2 py-4">
+        <div className="flex items-center justify-center gap-3">
+          <button
+            className="sk-btn sk-btn--primary sk-btn--tap relative"
+            onClick={() => {
+              setHitPulse((p) => p + 1);
+              onHit();
+            }}
+          >
+            Hit
+            {hitPulse > 0 && <span key={hitPulse} className="sk-btn-ripple" aria-hidden="true" />}
+          </button>
+          <button
+            className="sk-btn sk-btn--amber sk-btn--tap relative"
+            onClick={() => {
+              setStandPulse((p) => p + 1);
+              onStand();
+            }}
+          >
+            Stand
+            {standPulse > 0 && <span key={standPulse} className="sk-btn-ripple" aria-hidden="true" />}
+          </button>
+        </div>
+        {canDoubleOrSurrender && (
+          <div className="flex items-center justify-center gap-3">
+            <button type="button" className="sk-btn sk-btn--tap text-sm" onClick={onDouble}>
+              Double
+            </button>
+            <button type="button" className="sk-btn sk-btn--tap text-sm" onClick={onSurrender}>
+              Surrender
+            </button>
+          </div>
+        )}
       </div>
     );
   }

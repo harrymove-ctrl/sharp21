@@ -151,6 +151,18 @@ export function useBlackjack(options: { demoOnly?: boolean } = {}) {
   const stand = useCallback(() => {
     setState((s) => engine.stand(s));
   }, []);
+  const double = useCallback(() => {
+    setState((s) => engine.double(s));
+  }, []);
+  const surrender = useCallback(() => {
+    setState((s) => engine.surrender(s));
+  }, []);
+  const takeInsurance = useCallback(() => {
+    setState((s) => engine.takeInsurance(s));
+  }, []);
+  const declineInsurance = useCallback(() => {
+    setState((s) => engine.declineInsurance(s));
+  }, []);
   const deal = useCallback(() => {
     setState((s) => engine.nextHand(s));
   }, []);
@@ -195,5 +207,10 @@ export function useBlackjack(options: { demoOnly?: boolean } = {}) {
     confirmScannedPayment,
     usingHub,
     connectHub,
+    onDouble: double,
+    onSurrender: surrender,
+    onTakeInsurance: takeInsurance,
+    onDeclineInsurance: declineInsurance,
+    canDoubleOrSurrender: engine.canDoubleOrSurrender(state),
   };
 }

@@ -68,6 +68,11 @@ export function GameWidget({
                 onDismissPaymentError={pve.dismissPaymentError}
                 usingScanToPay={pve.usingScanToPay}
                 onScannedPaid={pve.confirmScannedPayment}
+                onDouble={pve.onDouble}
+                onSurrender={pve.onSurrender}
+                onTakeInsurance={pve.onTakeInsurance}
+                onDeclineInsurance={pve.onDeclineInsurance}
+                canDoubleOrSurrender={pve.canDoubleOrSurrender}
               />
             </div>
           </>
