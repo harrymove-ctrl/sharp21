@@ -97,8 +97,10 @@ function Sidebar() {
       <div className="sk-panel p-5">
         <div className="sk-eyebrow text-sm mb-2">Quick strategy reference</div>
         <p className="sk-body text-sm leading-relaxed" style={{ color: "var(--sk-ink-soft)" }}>
-          Hard 12–16 vs. dealer 2–6: stand. Vs. dealer 7–Ace: hit. Anything 11 or under: always
-          hit. Live feedback after every decision shows you the right call either way.
+          Hard 12–16 vs. dealer 2–6: stand. Vs. dealer 7–Ace: hit (or surrender 15–16 vs. a
+          strong upcard, if you'd rather not risk it). Double down on strong two-card totals
+          like 10 or 11. Never take insurance. Live feedback after every decision shows you the
+          right call either way.
         </p>
       </div>
     </aside>
