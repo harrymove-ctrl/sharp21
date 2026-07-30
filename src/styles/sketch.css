@@ -51,13 +51,19 @@
   }
 
   /* Rough hand-drawn border: a displaced ::before layer, kept separate from crisp content.
-     The base element needs the SAME border-radius as its ::before overlay - otherwise its
-     own square-cornered background fill pokes out past the rounded hand-drawn border. */
+     The wobbly border must never be clipped by a crisp geometric edge (that's what produced
+     the corner artifact: overflow:hidden clipped outward wobble at a perfectly smooth curve
+     while inward wobble exposed that same smooth curve as a stray paper-colored sliver, since
+     the fill and the border nominally shared one boundary). Instead the base element carries a
+     transparent border and clips its OWN fill to the padding box - a smaller, smooth,
+     inherently-radius-adjusted shape that the ~2px displacement can never reach - while the
+     ::before border overlay is left completely unclipped so it can wander freely in and out. */
   .sk-panel {
     position: relative;
     background: var(--sk-paper);
+    background-clip: padding-box;
+    border: 3px solid transparent;
     border-radius: 14px;
-    overflow: hidden;
   }
   .sk-panel::before {
     content: "";
@@ -74,10 +80,10 @@
     font-family: var(--sk-font);
     padding: 0.5rem 1.25rem;
     background: var(--sk-paper);
+    background-clip: padding-box;
     color: var(--sk-ink);
-    border: none;
+    border: 3px solid transparent;
     border-radius: 10px;
-    overflow: hidden;
     cursor: pointer;
     transition: transform 120ms ease;
   }

@@ -1,6 +1,13 @@
+import { useState } from "react";
 import { BET_OPTIONS, type GameState } from "../game/engine";
 import type { PaymentStatus } from "../hooks/useBlackjack";
 import { Chip } from "./Chip";
+
+// Must match Table.tsx's reveal-choreography constants so "Deal again"
+// fades in around the same moment the result panel finishes appearing,
+// instead of sitting there clickable while the felt is still revealing.
+const HOLE_FLIP_MS = 420;
+const CATCH_UP_STAGGER_MS = 240;
 
 export function Hud({
   state,
@@ -19,6 +26,12 @@ export function Hud({
   onDeal: () => void;
   onDismissPaymentError: () => void;
 }) {
+  // Bumped on every click so a fresh <span> mounts each time, replaying the
+  // tap-ripple animation - a stronger, click-tied response than the
+  // existing generic hover lift.
+  const [hitPulse, setHitPulse] = useState(0);
+  const [standPulse, setStandPulse] = useState(0);
+
   if (state.phase === "betting") {
     if (payment.kind === "pending") {
       return (
@@ -59,25 +72,50 @@ export function Hud({
   if (state.phase === "player-turn") {
     return (
       <div className="flex items-center justify-center gap-3 py-4">
-        <button className="sk-btn sk-btn--primary" onClick={onHit}>
+        <button
+          className="sk-btn sk-btn--primary sk-btn--tap relative"
+          onClick={() => {
+            setHitPulse((p) => p + 1);
+            onHit();
+          }}
+        >
           Hit
+          {hitPulse > 0 && <span key={hitPulse} className="sk-btn-ripple" aria-hidden="true" />}
         </button>
-        <button className="sk-btn sk-btn--amber" onClick={onStand}>
+        <button
+          className="sk-btn sk-btn--amber sk-btn--tap relative"
+          onClick={() => {
+            setStandPulse((p) => p + 1);
+            onStand();
+          }}
+        >
           Stand
+          {standPulse > 0 && <span key={standPulse} className="sk-btn-ripple" aria-hidden="true" />}
         </button>
       </div>
     );
   }
 
   if (state.phase === "round-over") {
+    const dealerExtraCards = Math.max(0, state.dealerHand.length - 2);
+    const revealHoldMs = HOLE_FLIP_MS + dealerExtraCards * CATCH_UP_STAGGER_MS;
     return (
       <div className="flex items-center justify-center py-4">
-        <button className="sk-btn sk-btn--primary" onClick={onDeal}>
+        <button
+          className="sk-btn sk-btn--primary sk-btn--tap sk-enter-fade"
+          style={{ animationDelay: `${revealHoldMs + 150}ms` }}
+          onClick={onDeal}
+        >
           Deal again
         </button>
       </div>
     );
   }
 
-  return <div className="py-4 text-center sk-eyebrow text-xs opacity-60">Dealer playing…</div>;
+  return (
+    <div className="py-4 flex items-center justify-center gap-2 sk-eyebrow text-xs opacity-60">
+      <span className="sk-turn-dot" aria-hidden="true" />
+      Dealer playing…
+    </div>
+  );
 }

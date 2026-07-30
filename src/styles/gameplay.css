@@ -1,0 +1,269 @@
+/* Gameplay presentation layer: card deal/reveal motion, whose-turn legibility,
+   button tap feedback, and round-over emphasis.
+
+   This is presentation-only - engine.ts/useBlackjack.ts resolve a hand
+   synchronously in one state update, so there's no real "dealer is thinking"
+   pause to hook into. Instead, every timing here is derived from data the
+   GameState already exposes (dealerHand.length, phase, ...) and passed down
+   as inline `animationDelay`/`animationDuration` values from Table.tsx and
+   Hand.tsx, so the dealer's hole-card flip, any catch-up cards it draws to
+   17, the "Dealer reveals..." caption, and the result panel all read as one
+   continuous beat instead of popping in as unrelated, simultaneous changes. */
+
+@layer components {
+  /* ---- Card motion ---- */
+
+  .sk-card-deal {
+    animation: sk-card-deal-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .sk-card-flip {
+    animation: sk-card-flip-in 440ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transform-style: preserve-3d;
+  }
+
+  .sk-card-back-mark {
+    font-family: var(--sk-font);
+    font-size: clamp(1rem, 6cqw, 1.6rem);
+    color: var(--sk-paper);
+    opacity: 0.8;
+  }
+
+  /* Small "you drew this" tag on any card beyond the original two - reads
+     the growing hand as a sequence of choices instead of an unexplained
+     pile of cards. Anchored top-left so it survives the card-overlap
+     layout (later cards overlap earlier ones from the right). */
+  .sk-hit-badge {
+    position: absolute;
+    top: -0.35rem;
+    left: -0.35rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.2rem;
+    border-radius: 9999px;
+    background: var(--sk-amber);
+    color: var(--sk-paper);
+    font-family: var(--sk-font);
+    font-size: 0.62rem;
+    line-height: 1.15rem;
+    text-align: center;
+    border: 1.5px solid var(--sk-ink);
+    box-shadow: 1px 1px 0 rgba(35, 34, 31, 0.25);
+    z-index: 1;
+  }
+
+  /* ---- Turn / phase legibility ---- */
+
+  .sk-turn-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    border: 1.5px solid var(--sk-ink);
+    font-family: var(--sk-font);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    animation: sk-fade-in-up 240ms ease-out;
+  }
+  .sk-turn-badge--player {
+    background: var(--sk-amber-fill);
+    color: var(--sk-ink);
+  }
+  .sk-turn-badge--dealer {
+    background: rgba(251, 249, 243, 0.85);
+    color: var(--sk-ink);
+  }
+
+  .sk-turn-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 9999px;
+    background: var(--sk-good);
+    animation: sk-pulse-dot 1.2s ease-in-out infinite;
+  }
+
+  /* Transient "Dealer reveals..." caption: fades in, holds while the hole
+     card/catch-up cards animate, then fades out on its own - duration is
+     set inline per-hand so it always matches that hand's reveal length. */
+  .sk-caption-timed {
+    animation-name: sk-caption-hold-fade;
+    animation-timing-function: ease-in-out;
+    animation-fill-mode: both;
+  }
+
+  /* Highlights whichever hand currently has agency, so it's visually
+     obvious the player is mid-decision while the dealer just waits. */
+  .sk-hand-active {
+    position: relative;
+  }
+  .sk-hand-active::after {
+    content: "";
+    position: absolute;
+    inset: -0.6rem -0.9rem;
+    border-radius: 18px;
+    border: 2px dashed var(--sk-amber);
+    animation: sk-hand-glow 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* ---- Score / decision feedback ---- */
+
+  .sk-score-pop {
+    animation: sk-score-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .sk-decision-pill {
+    display: inline-block;
+    animation: sk-fade-in-up 280ms ease-out;
+  }
+
+  /* Same fade-in-up feel as sketch.css's .sk-fade-in-up, but with
+     fill-mode: both so it can safely be paired with an animation-delay
+     (the shared class has no fill-mode, so a delayed element using it
+     would flash at full opacity before snapping to its "from" state). */
+  .sk-enter-fade {
+    animation: sk-fade-in-up 280ms ease-out both;
+  }
+
+  /* ---- Round-over emphasis ---- */
+
+  .sk-result-panel {
+    animation: sk-result-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .sk-result-panel--win {
+    box-shadow: 0 0 0 3px var(--sk-good), 0 10px 26px rgba(47, 158, 68, 0.35);
+  }
+  .sk-result-panel--lose {
+    box-shadow: 0 0 0 3px var(--sk-red), 0 10px 26px rgba(224, 49, 49, 0.32);
+  }
+  .sk-result-panel--push {
+    box-shadow: 0 0 0 3px var(--sk-amber), 0 10px 26px rgba(232, 146, 12, 0.3);
+  }
+
+  /* ---- Button / chip tap feedback (distinct from the existing hover lift) ---- */
+
+  .sk-btn--tap:active:not(:disabled) {
+    transform: translateY(1px) scale(0.95);
+  }
+  .sk-chip--tap:active:not(:disabled) {
+    transform: translateY(0) scale(0.92);
+  }
+
+  .sk-btn-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: currentColor;
+    /* No fill-mode would leave this stuck at the bare opacity below forever
+       once the animation finishes - forwards holds the keyframe's own end
+       state (opacity: 0) instead of reverting to it. */
+    opacity: 0;
+    animation: sk-btn-ripple 380ms ease-out forwards;
+    pointer-events: none;
+  }
+}
+
+@keyframes sk-card-deal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.85) rotate(-6deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes sk-card-flip-in {
+  0% {
+    opacity: 0;
+    transform: perspective(700px) rotateY(-90deg) scale(0.92);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(700px) rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes sk-pulse-dot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.55;
+  }
+}
+
+@keyframes sk-caption-hold-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sk-hand-glow {
+  0%,
+  100% {
+    opacity: 0.22;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes sk-score-pop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.4;
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes sk-result-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+  70% {
+    transform: translateY(-2px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sk-btn-ripple {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}

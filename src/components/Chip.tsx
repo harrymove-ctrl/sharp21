@@ -16,7 +16,7 @@ export function Chip({
   return (
     <button
       type="button"
-      className="sk-chip sk-chip-pop"
+      className="sk-chip sk-chip-pop sk-chip--tap"
       style={{ background: CHIP_COLOR[value] ?? "#94a3b8" }}
       onClick={onClick}
       disabled={disabled}

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./sketch.css";
+@import "./gameplay.css";
 
 html,
 body,
