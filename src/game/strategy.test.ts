@@ -1,75 +1,130 @@
 import { describe, expect, test } from "vitest";
 import { optimalAction } from "./strategy";
 
-// Reference table for a hit/stand-only variant (no double/split available).
-// Dealer upcard keys use 11 for Ace, matching optimalAction's own convention.
-const UPCARDS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+// Dealer upcard keys use 1 for Ace (rank 1), matching optimalAction's own convention.
+const UPCARDS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 1];
 
-describe("optimalAction: hard totals", () => {
-  test.each([4, 5, 6, 7, 8, 9, 10, 11])("hard %i always hits", (total) => {
-    for (const up of UPCARDS) {
-      expect(optimalAction(total, false, up), `hard ${total} vs ${up}`).toBe("hit");
-    }
+function expectByUpcard(
+  total: number,
+  isSoft: boolean,
+  canDouble: boolean,
+  canSurrender: boolean,
+  expected: Record<number, string>,
+) {
+  for (const up of UPCARDS) {
+    expect(optimalAction(total, isSoft, up, canDouble, canSurrender), `total ${total} vs ${up}`).toBe(expected[up]);
+  }
+}
+
+describe("optimalAction: hard totals, no double/surrender available", () => {
+  test.each([4, 5, 6, 7, 8])("hard %i always hits", (total) => {
+    expectByUpcard(total, false, false, false, Object.fromEntries(UPCARDS.map((u) => [u, "hit"])));
+  });
+
+  test("hard 9 hits everywhere when double isn't available", () => {
+    expectByUpcard(9, false, false, false, Object.fromEntries(UPCARDS.map((u) => [u, "hit"])));
+  });
+
+  test("hard 10 hits everywhere when double isn't available", () => {
+    expectByUpcard(10, false, false, false, Object.fromEntries(UPCARDS.map((u) => [u, "hit"])));
+  });
+
+  test("hard 11 hits everywhere when double isn't available", () => {
+    expectByUpcard(11, false, false, false, Object.fromEntries(UPCARDS.map((u) => [u, "hit"])));
   });
 
   test("hard 12 stands only vs dealer 4-6", () => {
-    const standVs = new Set([4, 5, 6]);
-    for (const up of UPCARDS) {
-      const expected = standVs.has(up) ? "stand" : "hit";
-      expect(optimalAction(12, false, up), `hard 12 vs ${up}`).toBe(expected);
-    }
+    expectByUpcard(12, false, false, false, { 2: "hit", 3: "hit", 4: "stand", 5: "stand", 6: "stand", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
   });
 
-  test.each([13, 14, 15, 16])("hard %i stands vs dealer 2-6, hits vs 7-Ace", (total) => {
-    const standVs = new Set([2, 3, 4, 5, 6]);
-    for (const up of UPCARDS) {
-      const expected = standVs.has(up) ? "stand" : "hit";
-      expect(optimalAction(total, false, up), `hard ${total} vs ${up}`).toBe(expected);
-    }
+  test.each([13, 14])("hard %i stands vs dealer 2-6, hits vs 7-Ace", (total) => {
+    expectByUpcard(total, false, false, false, { 2: "stand", 3: "stand", 4: "stand", 5: "stand", 6: "stand", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
+  });
+
+  test("hard 15 hits vs 7-Ace when surrender isn't available (would surrender vs 10 if it were)", () => {
+    expectByUpcard(15, false, false, false, { 2: "stand", 3: "stand", 4: "stand", 5: "stand", 6: "stand", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
+  });
+
+  test("hard 16 hits vs 9/10/Ace when surrender isn't available", () => {
+    expectByUpcard(16, false, false, false, { 2: "stand", 3: "stand", 4: "stand", 5: "stand", 6: "stand", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
   });
 
   test.each([17, 18, 19, 20, 21])("hard %i always stands", (total) => {
-    for (const up of UPCARDS) {
-      expect(optimalAction(total, false, up), `hard ${total} vs ${up}`).toBe("stand");
-    }
+    expectByUpcard(total, false, false, false, Object.fromEntries(UPCARDS.map((u) => [u, "stand"])));
   });
 });
 
-describe("optimalAction: soft totals", () => {
-  test.each([12, 13, 14, 15, 16, 17])("soft %i always hits (no double available)", (total) => {
-    for (const up of UPCARDS) {
-      expect(optimalAction(total, true, up), `soft ${total} vs ${up}`).toBe("hit");
-    }
+describe("optimalAction: hard totals, double and surrender available", () => {
+  test("hard 9 doubles vs dealer 3-6, else hits", () => {
+    expectByUpcard(9, false, true, false, { 2: "hit", 3: "double", 4: "double", 5: "double", 6: "double", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
   });
 
-  test("soft 18 hits only vs dealer 9, 10, or Ace", () => {
-    const hitVs = new Set([9, 10, 11]);
-    for (const up of UPCARDS) {
-      const expected = hitVs.has(up) ? "hit" : "stand";
-      expect(optimalAction(18, true, up), `soft 18 vs ${up}`).toBe(expected);
-    }
+  test("hard 10 doubles vs dealer 2-9, hits vs 10/Ace", () => {
+    expectByUpcard(10, false, true, false, { 2: "double", 3: "double", 4: "double", 5: "double", 6: "double", 7: "double", 8: "double", 9: "double", 10: "hit", 1: "hit" });
+  });
+
+  test("hard 11 doubles vs dealer 2-10, hits vs Ace", () => {
+    expectByUpcard(11, false, true, false, { 2: "double", 3: "double", 4: "double", 5: "double", 6: "double", 7: "double", 8: "double", 9: "double", 10: "double", 1: "hit" });
+  });
+
+  test("hard 15 surrenders vs dealer 10 when surrender is available, unaffected by canDouble", () => {
+    expectByUpcard(15, false, true, true, { 2: "stand", 3: "stand", 4: "stand", 5: "stand", 6: "stand", 7: "hit", 8: "hit", 9: "hit", 10: "surrender", 1: "hit" });
+  });
+
+  test("hard 16 surrenders vs dealer 9, 10, and Ace when surrender is available", () => {
+    expectByUpcard(16, false, false, true, { 2: "stand", 3: "stand", 4: "stand", 5: "stand", 6: "stand", 7: "hit", 8: "hit", 9: "surrender", 10: "surrender", 1: "surrender" });
+  });
+});
+
+describe("optimalAction: soft totals, no double available", () => {
+  test.each([13, 14, 15, 16, 17])("soft %i always hits when double isn't available", (total) => {
+    expectByUpcard(total, true, false, false, Object.fromEntries(UPCARDS.map((u) => [u, "hit"])));
+  });
+
+  test("soft 18 hits only vs dealer 9, 10, or Ace when double isn't available", () => {
+    expectByUpcard(18, true, false, false, { 2: "stand", 3: "stand", 4: "stand", 5: "stand", 6: "stand", 7: "stand", 8: "stand", 9: "hit", 10: "hit", 1: "hit" });
   });
 
   test.each([19, 20, 21])("soft %i always stands", (total) => {
-    for (const up of UPCARDS) {
-      expect(optimalAction(total, true, up), `soft ${total} vs ${up}`).toBe("stand");
-    }
+    expectByUpcard(total, true, false, false, Object.fromEntries(UPCARDS.map((u) => [u, "stand"])));
   });
 });
 
-describe("optimalAction: dealer face cards and ace normalize correctly", () => {
-  test("dealer J/Q/K (ranks 11-13) behave identically to a 10 upcard", () => {
-    // The engine passes the raw card rank (1-13) as dealerUpcard; only rank 1
-    // is special-cased as an ace. Ranks 11-13 must fall through the
-    // `Math.min(dealerUpcard, 10)` clamp exactly like a plain 10.
-    for (const rank of [10, 11, 12, 13]) {
-      expect(optimalAction(15, false, rank)).toBe(optimalAction(15, false, 10));
+describe("optimalAction: soft totals, double available", () => {
+  test("soft 13 (A2) doubles vs dealer 5-6, else hits", () => {
+    expectByUpcard(13, true, true, false, { 2: "hit", 3: "hit", 4: "hit", 5: "double", 6: "double", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
+  });
+
+  test("soft 14 (A3) doubles vs dealer 5-6, else hits", () => {
+    expectByUpcard(14, true, true, false, { 2: "hit", 3: "hit", 4: "hit", 5: "double", 6: "double", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
+  });
+
+  test("soft 15 (A4) doubles vs dealer 4-6, else hits", () => {
+    expectByUpcard(15, true, true, false, { 2: "hit", 3: "hit", 4: "double", 5: "double", 6: "double", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
+  });
+
+  test("soft 16 (A5) doubles vs dealer 4-6, else hits", () => {
+    expectByUpcard(16, true, true, false, { 2: "hit", 3: "hit", 4: "double", 5: "double", 6: "double", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
+  });
+
+  test("soft 17 (A6) doubles vs dealer 3-6, else hits", () => {
+    expectByUpcard(17, true, true, false, { 2: "hit", 3: "double", 4: "double", 5: "double", 6: "double", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
+  });
+
+  test("soft 18 (A7) doubles vs dealer 3-6, stands vs 2/7/8, hits vs 9/10/Ace", () => {
+    expectByUpcard(18, true, true, false, { 2: "stand", 3: "double", 4: "double", 5: "double", 6: "double", 7: "stand", 8: "stand", 9: "hit", 10: "hit", 1: "hit" });
+  });
+});
+
+describe("optimalAction: dealer face cards normalize like ten, ace normalizes high", () => {
+  test("dealer J/Q/K behave exactly like dealer 10", () => {
+    for (const face of [11, 12, 13]) {
+      expect(optimalAction(16, false, face, false, false)).toBe(optimalAction(16, false, 10, false, false));
     }
   });
 
-  test("dealer ace (rank 1) is treated as high, not low", () => {
-    // Hard 13 stands vs a weak dealer card but hits vs a strong one - an ace
-    // must be graded as strong (like a 10-value upcard), not as rank "1".
-    expect(optimalAction(13, false, 1)).toBe("hit");
+  test("dealer showing Ace (rank 1) behaves like upcard 11 in the tables above", () => {
+    expect(optimalAction(11, false, 1, true, false)).toBe("hit");
+    expect(optimalAction(16, false, 1, false, true)).toBe("surrender");
   });
 });
