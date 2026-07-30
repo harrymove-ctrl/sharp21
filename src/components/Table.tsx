@@ -64,11 +64,17 @@ export function Table({
       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center">
         {state.phase === "round-over" && state.lastMessage ? (
           <div
-            className={`sk-panel sk-result-panel sk-result-panel--${state.outcome ?? "push"} px-5 py-3 text-center max-w-[80%]`}
+            className={`sk-panel sk-result-panel sk-result-panel--${state.outcome === "surrender" ? "push" : (state.outcome ?? "push")} px-5 py-3 text-center max-w-[80%]`}
             style={{ animationDelay: `${resultDelayMs}ms` }}
           >
             <div className="sk-title text-lg leading-tight" style={{ color: outcomeColor }}>
-              {state.outcome === "win" ? "You win" : state.outcome === "lose" ? "Dealer wins" : "Push"}
+              {state.outcome === "win"
+                ? "You win"
+                : state.outcome === "lose"
+                  ? "Dealer wins"
+                  : state.outcome === "surrender"
+                    ? "Surrendered"
+                    : "Push"}
             </div>
             <div className="text-sm mt-1" style={{ color: "var(--sk-ink-soft)" }}>
               {state.lastMessage}
