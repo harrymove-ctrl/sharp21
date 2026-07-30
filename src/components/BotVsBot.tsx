@@ -13,13 +13,13 @@ const STEP_MS = 900;
  * bot always playing optimally would trivially top a real leaderboard.
  */
 export function BotVsBot() {
-  const { state, bet, hit, stand, deal } = useBlackjack({ demoOnly: true });
-  const latest = useRef({ state, bet, hit, stand, deal });
-  latest.current = { state, bet, hit, stand, deal };
+  const { state, bet, hit, stand, deal, onDeclineInsurance } = useBlackjack({ demoOnly: true });
+  const latest = useRef({ state, bet, hit, stand, deal, onDeclineInsurance });
+  latest.current = { state, bet, hit, stand, deal, onDeclineInsurance };
 
   useEffect(() => {
     const id = setTimeout(() => {
-      const { state: s, bet, hit, stand, deal } = latest.current;
+      const { state: s, bet, hit, stand, deal, onDeclineInsurance } = latest.current;
       if (s.phase === "betting") {
         bet(1);
       } else if (s.phase === "player-turn") {
@@ -27,6 +27,8 @@ export function BotVsBot() {
         const action = optimalAction(hv.total, hv.isSoft, s.dealerHand[0].rank, false, false);
         if (action === "hit") hit();
         else stand();
+      } else if (s.phase === "insurance") {
+        onDeclineInsurance();
       } else if (s.phase === "round-over") {
         deal();
       }

@@ -77,6 +77,10 @@ describe("optimalAction: hard totals, double and surrender available", () => {
 });
 
 describe("optimalAction: soft totals, no double available", () => {
+  test("soft 12 (A,A before any split) always hits", () => {
+    expectByUpcard(12, true, false, false, Object.fromEntries(UPCARDS.map((u) => [u, "hit"])));
+  });
+
   test.each([13, 14, 15, 16, 17])("soft %i always hits when double isn't available", (total) => {
     expectByUpcard(total, true, false, false, Object.fromEntries(UPCARDS.map((u) => [u, "hit"])));
   });
@@ -91,6 +95,10 @@ describe("optimalAction: soft totals, no double available", () => {
 });
 
 describe("optimalAction: soft totals, double available", () => {
+  test("soft 12 (A,A before any split) always hits, even when double is available", () => {
+    expectByUpcard(12, true, true, false, Object.fromEntries(UPCARDS.map((u) => [u, "hit"])));
+  });
+
   test("soft 13 (A2) doubles vs dealer 5-6, else hits", () => {
     expectByUpcard(13, true, true, false, { 2: "hit", 3: "hit", 4: "hit", 5: "double", 6: "double", 7: "hit", 8: "hit", 9: "hit", 10: "hit", 1: "hit" });
   });

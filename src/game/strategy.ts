@@ -27,6 +27,7 @@ export function optimalAction(
   const up = dealerUpcard === 1 ? 11 : Math.min(dealerUpcard, 10);
 
   if (isSoft) {
+    if (total <= 12) return "hit"; // A,A before any split (pair-splitting isn't implemented yet)
     if (total === 13 || total === 14) {
       // A2, A3
       return inRange(up, 5, 6) && canDouble ? "double" : "hit";
