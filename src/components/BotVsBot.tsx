@@ -24,7 +24,9 @@ export function BotVsBot() {
         bet(1);
       } else if (s.phase === "player-turn") {
         const hv = handValue(s.playerHand);
-        const action = optimalAction(hv.total, hv.isSoft, s.dealerHand[0].rank);
+        const canDouble = s.playerHand.length === 2;
+        const canSurrender = s.playerHand.length === 2;
+        const action = optimalAction(hv.total, hv.isSoft, s.dealerHand[0].rank, canDouble, canSurrender);
         if (action === "hit") hit();
         else stand();
       } else if (s.phase === "round-over") {
