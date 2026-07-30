@@ -141,7 +141,7 @@ export function openerLinks(): { https: string; scheme: string } {
 }
 
 /** Real store listings for Nimiq Pay - the fallback when the app isn't installed. */
-export const STORE_LINKS: Partial<Record<"ios" | "android" | "unknown", string>> = {
+export const STORE_LINKS: Record<"ios" | "android", string> = {
   ios: "https://apps.apple.com/ng/app/nimiq-pay/id6471844738",
   android: "https://play.google.com/store/apps/details?id=com.nimiq.pay",
 };

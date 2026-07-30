@@ -39,15 +39,25 @@ export function OpenNimiqPay() {
   };
 
   if (state === "not-installed") {
-    const storeUrl = STORE_LINKS[detectPlatform()];
-    return storeUrl ? (
-      <a href={storeUrl} className="sk-btn sk-btn--primary text-sm">
+    const platform = detectPlatform();
+    // Nimiq Pay only exists as a mobile app - on desktop there's no app to
+    // open and no store link to fall back to, so a "Try again" button would
+    // just be lying (it can never succeed here, unlike a mobile browser
+    // where the app might genuinely still be installing).
+    if (platform === "unknown") {
+      return (
+        <div className="sk-panel px-4 py-3 text-center max-w-xs">
+          <p className="sk-body text-xs leading-relaxed" style={{ color: "var(--sk-ink-soft)" }}>
+            Nimiq Pay is a mobile app. Open this page on your phone to connect your wallet and
+            play.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <a href={STORE_LINKS[platform]} className="sk-btn sk-btn--primary text-sm">
         Get Nimiq Pay
       </a>
-    ) : (
-      <button type="button" className="sk-btn text-sm" onClick={attemptOpen}>
-        Try again
-      </button>
     );
   }
 
