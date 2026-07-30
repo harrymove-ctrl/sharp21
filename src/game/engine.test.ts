@@ -83,12 +83,14 @@ describe("hit", () => {
     const next = engine.hit(s);
     expect(next.phase).toBe("player-turn");
     expect(next.handDecisions).toHaveLength(1);
+    // Hard 16 vs dealer 9 on a fresh 2-card hand: surrender is now a real,
+    // available option (Task 2), and basic strategy prefers it over hitting.
     expect(next.handDecisions[0]).toMatchObject({
       total: 16,
       dealerUpcard: 9,
       action: "hit",
-      optimal: "hit",
-      wasCorrect: true,
+      optimal: "surrender",
+      wasCorrect: false,
     });
   });
 
@@ -211,5 +213,86 @@ describe("nextHand", () => {
     expect(next.handsPlayed).toBe(3);
     expect(next.correctDecisions).toBe(2);
     expect(next.totalDecisions).toBe(4);
+  });
+});
+
+describe("canDoubleOrSurrender", () => {
+  test("true on a fresh 2-card hand in player-turn", () => {
+    const s = baseState({ phase: "player-turn", playerHand: [card(5), card(6)], dealerHand: [card(9), card(2)] });
+    expect(engine.canDoubleOrSurrender(s)).toBe(true);
+  });
+
+  test("false once the player has already hit", () => {
+    const s = baseState({ phase: "player-turn", playerHand: [card(5), card(6), card(2)], dealerHand: [card(9), card(2)] });
+    expect(engine.canDoubleOrSurrender(s)).toBe(false);
+  });
+
+  test("false outside player-turn", () => {
+    const s = baseState({ phase: "betting", playerHand: [card(5), card(6)], dealerHand: [card(9), card(2)] });
+    expect(engine.canDoubleOrSurrender(s)).toBe(false);
+  });
+});
+
+describe("double", () => {
+  test("draws exactly one card, records a graded decision, and stands automatically when not bust", () => {
+    mockDraws(card(6)); // player draws a 6: 5+6+6 = 17
+    const s = baseState({ phase: "player-turn", playerHand: [card(5), card(6)], dealerHand: [card(9), card(2)], dealerHoleHidden: true });
+    const next = engine.double(s);
+    expect(next.playerHand).toEqual([card(5), card(6), card(6)]);
+    expect(next.handDecisions).toHaveLength(1);
+    expect(next.handDecisions[0].action).toBe("double");
+    expect(next.phase).toBe("round-over"); // dealer (9,2=11) draws to beat/lose to player's 17, either way turn is over
+    expect(next.dealerHoleHidden).toBe(false);
+  });
+
+  test("busting on the double card ends the hand as a loss", () => {
+    mockDraws(card(10)); // player: 10,6,10 = 26, bust
+    const s = baseState({ phase: "player-turn", playerHand: [card(10), card(6)], dealerHand: [card(9), card(2)], dealerHoleHidden: true });
+    const next = engine.double(s);
+    expect(next.phase).toBe("round-over");
+    expect(next.outcome).toBe("lose");
+    expect(next.dealerHoleHidden).toBe(false);
+  });
+
+  test("grades the double as correct when it matches basic strategy", () => {
+    // hard 11 vs dealer 6 - basic strategy says double
+    mockDraws(card(5));
+    const s = baseState({ phase: "player-turn", playerHand: [card(5), card(6)], dealerHand: [card(6), card(2)], dealerHoleHidden: true });
+    const next = engine.double(s);
+    expect(next.handDecisions[0].wasCorrect).toBe(true);
+  });
+});
+
+describe("surrender", () => {
+  test("ends the hand immediately with a distinct surrender outcome", () => {
+    const s = baseState({ phase: "player-turn", playerHand: [card(10), card(6)], dealerHand: [card(10), card(6)], dealerHoleHidden: true });
+    const next = engine.surrender(s);
+    expect(next.phase).toBe("round-over");
+    expect(next.outcome).toBe("surrender");
+    expect(next.dealerHoleHidden).toBe(false);
+    expect(next.handsPlayed).toBe(1);
+  });
+
+  test("records a graded decision - correct when basic strategy actually says surrender", () => {
+    // hard 16 vs dealer 10 - basic strategy says surrender
+    const s = baseState({ phase: "player-turn", playerHand: [card(10), card(6)], dealerHand: [card(10), card(6)], dealerHoleHidden: true });
+    const next = engine.surrender(s);
+    expect(next.handDecisions).toHaveLength(1);
+    expect(next.handDecisions[0].action).toBe("surrender");
+    expect(next.handDecisions[0].wasCorrect).toBe(true);
+  });
+
+  test("records surrender as incorrect when basic strategy says something else", () => {
+    // hard 17 vs dealer 6 - basic strategy says stand, never surrender
+    const s = baseState({ phase: "player-turn", playerHand: [card(10), card(7)], dealerHand: [card(6), card(2)], dealerHoleHidden: true });
+    const next = engine.surrender(s);
+    expect(next.handDecisions[0].wasCorrect).toBe(false);
+  });
+
+  test("does not draw any cards", () => {
+    const s = baseState({ phase: "player-turn", playerHand: [card(10), card(6)], dealerHand: [card(10), card(6)], dealerHoleHidden: true });
+    const next = engine.surrender(s);
+    expect(next.playerHand).toEqual([card(10), card(6)]);
+    expect(next.dealerHand).toEqual([card(10), card(6)]);
   });
 });

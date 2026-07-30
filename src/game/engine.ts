@@ -2,7 +2,7 @@ import { type PlayingCard, drawCard, handValue } from "./cards";
 import { optimalAction, type Action } from "./strategy";
 
 export type Phase = "betting" | "player-turn" | "dealer-turn" | "round-over";
-export type Outcome = "win" | "lose" | "push";
+export type Outcome = "win" | "lose" | "push" | "surrender";
 
 export interface DecisionRecord {
   total: number;
@@ -45,10 +45,10 @@ export function initialState(): GameState {
   };
 }
 
-function recordDecision(state: GameState, action: Action): DecisionRecord {
+function recordDecision(state: GameState, action: Action, canDouble: boolean, canSurrender: boolean): DecisionRecord {
   const hv = handValue(state.playerHand);
   const dealerUpcard = state.dealerHand[0].rank;
-  const optimal = optimalAction(hv.total, hv.isSoft, dealerUpcard, false, false);
+  const optimal = optimalAction(hv.total, hv.isSoft, dealerUpcard, canDouble, canSurrender);
   return { total: hv.total, isSoft: hv.isSoft, dealerUpcard, action, optimal, wasCorrect: optimal === action };
 }
 
@@ -75,7 +75,7 @@ export function placeBet(state: GameState, wager: number): GameState {
 }
 
 export function hit(state: GameState): GameState {
-  const decision = recordDecision(state, "hit");
+  const decision = recordDecision(state, "hit", state.playerHand.length === 2, state.playerHand.length === 2);
   const playerHand = [...state.playerHand, drawCard()];
   let next: GameState = { ...state, playerHand, handDecisions: [...state.handDecisions, decision] };
   if (handValue(playerHand).isBust) {
@@ -85,15 +85,54 @@ export function hit(state: GameState): GameState {
   return next;
 }
 
+function finishPlayerTurn(state: GameState): GameState {
+  const next: GameState = { ...state, dealerHoleHidden: false, phase: "dealer-turn" };
+  return playDealerAndSettle(next);
+}
+
 export function stand(state: GameState): GameState {
-  const decision = recordDecision(state, "stand");
+  const decision = recordDecision(state, "stand", state.playerHand.length === 2, state.playerHand.length === 2);
+  const next: GameState = { ...state, handDecisions: [...state.handDecisions, decision] };
+  return finishPlayerTurn(next);
+}
+
+/** Double-down and surrender are only legal on the initial 2-card hand, before any hit. */
+export function canDoubleOrSurrender(state: GameState): boolean {
+  return state.phase === "player-turn" && state.playerHand.length === 2;
+}
+
+/**
+ * Draws exactly one card, then commits to standing - win, lose, or bust,
+ * the player's turn ends here. This is a skill-graded decision only: Sharp21
+ * has no mechanism to collect a second on-chain payment mid-hand, so there
+ * is no real "doubled wager" here, just the standard double-down rule of
+ * play (one card, then stand) for grading purposes.
+ */
+export function double(state: GameState): GameState {
+  const decision = recordDecision(state, "double", true, true);
+  const playerHand = [...state.playerHand, drawCard()];
+  const next: GameState = { ...state, playerHand, handDecisions: [...state.handDecisions, decision] };
+  if (handValue(playerHand).isBust) {
+    return settle({ ...next, dealerHoleHidden: false });
+  }
+  return finishPlayerTurn(next);
+}
+
+/**
+ * Ends the hand immediately without drawing again. Like double(), this is a
+ * skill-graded decision only - real casino surrender returns half the
+ * wager, but Sharp21 doesn't simulate wager payouts client-side at all
+ * (see engine.ts's settle(), which never reads state.wager), so there is no
+ * refund logic to write here.
+ */
+export function surrender(state: GameState): GameState {
+  const decision = recordDecision(state, "surrender", true, true);
   const next: GameState = {
     ...state,
     handDecisions: [...state.handDecisions, decision],
     dealerHoleHidden: false,
-    phase: "dealer-turn",
   };
-  return playDealerAndSettle(next);
+  return finalizeRound(next, "surrender", "Surrendered — half your entry back.");
 }
 
 function playDealerAndSettle(state: GameState): GameState {
@@ -102,6 +141,19 @@ function playDealerAndSettle(state: GameState): GameState {
     dealerHand = [...dealerHand, drawCard()];
   }
   return settle({ ...state, dealerHand });
+}
+
+function finalizeRound(state: GameState, outcome: Outcome, message: string): GameState {
+  const correctInHand = state.handDecisions.filter((d) => d.wasCorrect).length;
+  return {
+    ...state,
+    phase: "round-over",
+    outcome,
+    lastMessage: message,
+    handsPlayed: state.handsPlayed + 1,
+    correctDecisions: state.correctDecisions + correctInHand,
+    totalDecisions: state.totalDecisions + state.handDecisions.length,
+  };
 }
 
 function settle(state: GameState): GameState {
@@ -133,16 +185,7 @@ function settle(state: GameState): GameState {
     message = `Push at ${playerHV.total}.`;
   }
 
-  const correctInHand = state.handDecisions.filter((d) => d.wasCorrect).length;
-  return {
-    ...state,
-    phase: "round-over",
-    outcome,
-    lastMessage: message,
-    handsPlayed: state.handsPlayed + 1,
-    correctDecisions: state.correctDecisions + correctInHand,
-    totalDecisions: state.totalDecisions + state.handDecisions.length,
-  };
+  return finalizeRound(state, outcome, message);
 }
 
 export function nextHand(state: GameState): GameState {
