@@ -48,9 +48,7 @@ export function initialState(): GameState {
 function recordDecision(state: GameState, action: Action): DecisionRecord {
   const hv = handValue(state.playerHand);
   const dealerUpcard = state.dealerHand[0].rank;
-  const canDouble = state.playerHand.length === 2;
-  const canSurrender = state.playerHand.length === 2;
-  const optimal = optimalAction(hv.total, hv.isSoft, dealerUpcard, canDouble, canSurrender);
+  const optimal = optimalAction(hv.total, hv.isSoft, dealerUpcard, false, false);
   return { total: hv.total, isSoft: hv.isSoft, dealerUpcard, action, optimal, wasCorrect: optimal === action };
 }
 
