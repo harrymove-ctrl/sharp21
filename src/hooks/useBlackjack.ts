@@ -166,16 +166,18 @@ export function useBlackjack(options: { demoOnly?: boolean } = {}) {
     const meta = pendingHandRef.current;
     pendingHandRef.current = null;
     if (!meta || !identityRef.current || !account) return;
-    const correctThisHand = state.handDecisions.filter((d) => d.wasCorrect).length;
+    const insuranceGraded = state.insuranceDecision !== null;
+    const correctThisHand = state.handDecisions.filter((d) => d.wasCorrect).length + (state.insuranceDecision === "declined" ? 1 : 0);
+    const totalDecisionsThisHand = state.handDecisions.length + (insuranceGraded ? 1 : 0);
     void recordHand({
       deviceId: identityRef.current,
       correctDecisions: correctThisHand,
-      totalDecisions: state.handDecisions.length,
+      totalDecisions: totalDecisionsThisHand,
       wagerLuna: meta.wagerLuna,
       entryFeeTxHash: meta.entryFeeTxHash,
       payoutAddress: account,
     });
-  }, [state.handsPlayed, realMoney, account, state.handDecisions]);
+  }, [state.handsPlayed, realMoney, account, state.handDecisions, state.insuranceDecision]);
 
   return {
     state,
