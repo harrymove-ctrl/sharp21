@@ -27,6 +27,50 @@ export async function getDeviceId(): Promise<string> {
 }
 
 /**
+ * Memoized connection to the host - init() only needs to run once per
+ * session, not on every call. Reset to null on failure (rather than either
+ * caching forever, which poisons every later call after one bad connection,
+ * or never caching, which re-runs init()'s handshake on every single call)
+ * so the next attempt gets a clean retry instead of the same failure.
+ */
+let providerPromise: ReturnType<typeof init> | null = null;
+
+function getProvider() {
+  if (!providerPromise) {
+    providerPromise = init({ timeout: 4000 }).catch((err) => {
+      providerPromise = null;
+      throw err;
+    });
+  }
+  return providerPromise;
+}
+
+/**
+ * init()'s own timeout only covers the initial handshake - once a provider
+ * is cached, calls made through it (listAccounts, sendBasicTransaction, ...)
+ * have no timeout of their own and can hang forever if the host never
+ * responds (backgrounded app, dropped bridge, ignored prompt). That leaves
+ * the UI stuck - e.g. "Confirm the payment in your wallet..." with no way
+ * out but a page reload. Every provider call below is wrapped in this so a
+ * silent hang always resolves into a normal, recoverable error instead.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
+/**
  * Resolves the user's first connected Nimiq address, or null if the wallet
  * has none, refuses (an ErrorResponse), or the request fails outright (e.g.
  * the user declines the confirmation prompt). Never throws - this is a
@@ -34,8 +78,8 @@ export async function getDeviceId(): Promise<string> {
  */
 export async function getConnectedAccount(): Promise<string | null> {
   try {
-    const provider = await init({ timeout: 4000 });
-    const accounts = await provider.listAccounts();
+    const provider = await getProvider();
+    const accounts = await withTimeout(provider.listAccounts(), 8000, "Wallet didn't respond in time.");
     if (Array.isArray(accounts) && accounts.length > 0) {
       return accounts[0];
     }
@@ -52,8 +96,8 @@ export async function getConnectedAccount(): Promise<string | null> {
  */
 export async function isNetworkReady(): Promise<boolean> {
   try {
-    const provider = await init({ timeout: 4000 });
-    return await provider.isConsensusEstablished();
+    const provider = await getProvider();
+    return await withTimeout(provider.isConsensusEstablished(), 8000, "Wallet didn't respond in time.");
   } catch {
     return false;
   }
@@ -66,11 +110,18 @@ export async function payEntryFee(nimAmount: number, treasuryAddress: string): P
     return { ok: false, message: "No treasury address configured yet - entry fees can't be collected." };
   }
   try {
-    const provider = await init({ timeout: 4000 });
-    const result = await provider.sendBasicTransaction({
-      recipient: treasuryAddress,
-      value: Math.round(nimAmount * LUNA_PER_NIM),
-    });
+    const provider = await getProvider();
+    // Longer than the other timeouts - this one waits on the user actually
+    // looking at a confirmation prompt in their wallet, not just a bridge
+    // round-trip, so it needs real room before treating silence as a hang.
+    const result = await withTimeout(
+      provider.sendBasicTransaction({
+        recipient: treasuryAddress,
+        value: Math.round(nimAmount * LUNA_PER_NIM),
+      }),
+      90_000,
+      "Wallet didn't respond in time - try again.",
+    );
     if (typeof result === "string") {
       return { ok: true, txHash: result };
     }
@@ -78,4 +129,42 @@ export async function payEntryFee(nimAmount: number, treasuryAddress: string): P
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : "Wallet request failed." };
   }
+}
+
+/** Deep-link + universal-link opener for people outside Nimiq Pay. */
+export function openerLinks(): { https: string; scheme: string } {
+  const url = window.location.href;
+  return {
+    https: `https://nimpay.app/miniapps/open/${window.location.host}${window.location.pathname}`,
+    scheme: `nimiqpay://miniapp?url=${encodeURIComponent(url)}`,
+  };
+}
+
+/** Real store listings for Nimiq Pay - the fallback when the app isn't installed. */
+export const STORE_LINKS: Partial<Record<"ios" | "android" | "unknown", string>> = {
+  ios: "https://apps.apple.com/ng/app/nimiq-pay/id6471844738",
+  android: "https://play.google.com/store/apps/details?id=com.nimiq.pay",
+};
+
+export function detectPlatform(): "ios" | "android" | "unknown" {
+  const ua = navigator.userAgent || "";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+  if (/Android/i.test(ua)) return "android";
+  return "unknown";
+}
+
+/**
+ * Social apps' built-in browsers (Snapchat, Instagram, TikTok, Facebook, LINE)
+ * block custom URL scheme redirects and often interfere with universal links
+ * too, as an anti-hijacking measure. Detect these so we can tell people to
+ * switch to their real browser instead of silently failing to redirect.
+ */
+export function inAppBrowserName(): string | null {
+  const ua = navigator.userAgent || "";
+  if (/Snapchat/i.test(ua)) return "Snapchat";
+  if (/Instagram/i.test(ua)) return "Instagram";
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return "Facebook";
+  if (/TikTok|Bytedance/i.test(ua)) return "TikTok";
+  if (/Line\//i.test(ua)) return "LINE";
+  return null;
 }

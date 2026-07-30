@@ -2,6 +2,7 @@ import type { useBlackjack } from "../hooks/useBlackjack";
 import { Table } from "./Table";
 import { Hud } from "./Hud";
 import { BotVsBot } from "./BotVsBot";
+import { OpenNimiqPay } from "./OpenNimiqPay";
 
 export type Mode = "pve" | "bots";
 
@@ -86,16 +87,26 @@ export function GameWidget({
         </div>
       )}
 
-      <p
-        className="sk-body text-[0.65rem] leading-tight text-center max-w-sm shrink-0"
-        style={{ color: "rgba(255,255,255,0.5)" }}
-      >
-        {mode === "bots"
-          ? "Spectate mode — no wallet, no entry fee, purely illustrative."
-          : pve.realMoney
-            ? "Connected to Nimiq Pay — entry fees are real NIM."
-            : "Open inside Nimiq Pay to play with real NIM. Outside it, this is a local demo only."}
-      </p>
+      {mode === "pve" && !pve.realMoney ? (
+        <div className="shrink-0 flex flex-col items-center gap-1.5">
+          <p
+            className="sk-body text-[0.65rem] leading-tight text-center max-w-sm"
+            style={{ color: "rgba(255,255,255,0.5)" }}
+          >
+            This is a local demo. Open in Nimiq Pay to play with real NIM.
+          </p>
+          <OpenNimiqPay />
+        </div>
+      ) : (
+        <p
+          className="sk-body text-[0.65rem] leading-tight text-center max-w-sm shrink-0"
+          style={{ color: "rgba(255,255,255,0.5)" }}
+        >
+          {mode === "bots"
+            ? "Spectate mode — no wallet, no entry fee, purely illustrative."
+            : "Connected to Nimiq Pay — entry fees are real NIM."}
+        </p>
+      )}
     </div>
   );
 }
