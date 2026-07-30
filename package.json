@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@nimiq/hub-api": "^1.14.0",
     "@nimiq/mini-app-sdk": "^0.1.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",

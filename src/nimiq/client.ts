@@ -62,7 +62,7 @@ export function __resetProviderCacheForTests(): void {
  * out but a page reload. Every provider call below is wrapped in this so a
  * silent hang always resolves into a normal, recoverable error instead.
  */
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(message)), ms);
     promise.then(

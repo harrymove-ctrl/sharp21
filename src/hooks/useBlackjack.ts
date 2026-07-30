@@ -9,6 +9,7 @@ import {
   payEntryFee,
   TREASURY_ADDRESS,
 } from "../nimiq/client";
+import { connectHubWallet, payViaHub } from "../nimiq/hub";
 import { recordHand } from "../nimiq/backend";
 
 export type PaymentStatus = { kind: "idle" } | { kind: "pending" } | { kind: "error"; message: string };
@@ -32,12 +33,18 @@ export function useBlackjack(options: { demoOnly?: boolean } = {}) {
   const [scanPaySender, setScanPaySender] = useState<string | null>(null);
   const usingScanToPay = scanPaySender !== null;
 
+  // Same "sticky once set" reasoning as scanPaySender: once connected via
+  // Hub, every bet routes through Hub's checkout popup, not just the one
+  // that unlocked it.
+  const [hubAccount, setHubAccount] = useState<string | null>(null);
+  const usingHub = hubAccount !== null;
+
   // demoOnly forces the synchronous, no-wallet path regardless of host
   // context - BotVsBot's auto-play loop must never attempt a real payment,
-  // even when genuinely running inside Nimiq Pay. Real money now has two
-  // possible sources: the in-app Nimiq Pay wallet, or a completed
-  // scan-to-pay payment from any device.
-  const realMoney = !demoOnly && (isNimiqPayHost() || usingScanToPay);
+  // even when genuinely running inside Nimiq Pay. Real money now has three
+  // possible sources: the in-app Nimiq Pay wallet, a completed scan-to-pay
+  // payment, or a connected Nimiq Hub wallet.
+  const realMoney = !demoOnly && (isNimiqPayHost() || usingScanToPay || usingHub);
 
   // Per-hand bookkeeping needed to report the finished hand to the backend -
   // not part of the pure game state, so it lives alongside it here instead
@@ -63,6 +70,25 @@ export function useBlackjack(options: { demoOnly?: boolean } = {}) {
         return;
       }
       setPayment({ kind: "pending" });
+
+      // Hub payments go through their own checkout popup - no Nimiq Pay
+      // network-consensus pre-flight applies here (that check is specific
+      // to the mini-app SDK's bridge, and would just fail outside Nimiq Pay,
+      // which is exactly where Hub is used), and the paying address is
+      // already known from connectHub(), not fetched lazily like the
+      // mini-app path's device id below.
+      if (usingHub) {
+        const hubResult = await payViaHub(amount, TREASURY_ADDRESS);
+        if (!hubResult.ok) {
+          setPayment({ kind: "error", message: hubResult.message });
+          return;
+        }
+        pendingHandRef.current = { wagerLuna: Math.round(amount * 100_000), entryFeeTxHash: hubResult.txHash };
+        setPayment({ kind: "idle" });
+        setState((s) => engine.placeBet(s, amount));
+        return;
+      }
+
       if (!(await isNetworkReady())) {
         setPayment({ kind: "error", message: "Nimiq network isn't ready yet - try again in a moment." });
         return;
@@ -88,8 +114,19 @@ export function useBlackjack(options: { demoOnly?: boolean } = {}) {
       setPayment({ kind: "idle" });
       setState((s) => engine.placeBet(s, amount));
     },
-    [realMoney, account],
+    [realMoney, usingHub, account],
   );
+
+  /** Opens the Hub popup to connect (or create) a wallet, then unlocks the normal chip-betting flow. */
+  const connectHub = useCallback(async () => {
+    const address = await connectHubWallet();
+    if (address) {
+      identityRef.current = address;
+      setHubAccount(address);
+      setAccount(address);
+    }
+    return address;
+  }, []);
 
   // Counterpart to bet() for a payment completed via the ScanToPay QR flow
   // instead of the in-app SDK - the payment already happened on-chain
@@ -154,5 +191,7 @@ export function useBlackjack(options: { demoOnly?: boolean } = {}) {
     connectWallet,
     usingScanToPay,
     confirmScannedPayment,
+    usingHub,
+    connectHub,
   };
 }
