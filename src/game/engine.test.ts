@@ -59,13 +59,17 @@ describe("placeBet", () => {
   });
 
   test("both natural blackjack is a push, not a win for either side", () => {
-    mockDraws(card(1), card(13), card(1), card(12)); // player A,K; dealer A,Q
+    // Dealer up-card is Q (not an Ace) so this settles immediately via
+    // placeBet instead of routing through the insurance phase.
+    mockDraws(card(1), card(13), card(12), card(1)); // player A,K; dealer Q,A
     const s = engine.placeBet(engine.initialState(), 1);
     expect(s.outcome).toBe("push");
   });
 
   test("dealer natural blackjack (no player blackjack) settles as a loss", () => {
-    mockDraws(card(9), card(6), card(1), card(13)); // player 15; dealer A,K
+    // Dealer up-card is K (not an Ace) so this settles immediately via
+    // placeBet instead of routing through the insurance phase.
+    mockDraws(card(9), card(6), card(13), card(1)); // player 15; dealer K,A
     const s = engine.placeBet(engine.initialState(), 1);
     expect(s.outcome).toBe("lose");
   });
@@ -294,5 +298,82 @@ describe("surrender", () => {
     const next = engine.surrender(s);
     expect(next.playerHand).toEqual([card(10), card(6)]);
     expect(next.dealerHand).toEqual([card(10), card(6)]);
+  });
+});
+
+describe("placeBet: insurance offer", () => {
+  test("offers insurance when the dealer's up-card is an Ace, before checking for blackjack", () => {
+    mockDraws(card(10), card(6), card(1), card(9)); // dealer shows Ace first
+    const s = engine.placeBet(engine.initialState(), 1);
+    expect(s.phase).toBe("insurance");
+    expect(s.insuranceDecision).toBeNull();
+    expect(s.dealerHoleHidden).toBe(true); // hole card still hidden - blackjack hasn't been checked yet
+  });
+
+  test("does not offer insurance when the dealer's up-card is not an Ace", () => {
+    mockDraws(card(10), card(6), card(9), card(2));
+    const s = engine.placeBet(engine.initialState(), 1);
+    expect(s.phase).toBe("player-turn");
+  });
+});
+
+describe("declineInsurance", () => {
+  test("grades declining as correct and moves to player-turn when no one has blackjack", () => {
+    const s = baseState({
+      phase: "insurance",
+      playerHand: [card(10), card(6)],
+      dealerHand: [card(1), card(9)],
+      dealerHoleHidden: true,
+      insuranceDecision: null,
+    });
+    const next = engine.declineInsurance(s);
+    expect(next.insuranceDecision).toBe("declined");
+    expect(next.correctDecisions).toBe(1);
+    expect(next.totalDecisions).toBe(1);
+    expect(next.phase).toBe("player-turn");
+  });
+
+  test("settles immediately as a loss if the dealer actually has blackjack", () => {
+    mockDraws(); // no more draws expected
+    const s = baseState({
+      phase: "insurance",
+      playerHand: [card(10), card(6)],
+      dealerHand: [card(1), card(13)], // dealer A,K = blackjack
+      dealerHoleHidden: true,
+      insuranceDecision: null,
+    });
+    const next = engine.declineInsurance(s);
+    expect(next.phase).toBe("round-over");
+    expect(next.outcome).toBe("lose");
+    expect(next.dealerHoleHidden).toBe(false);
+  });
+
+  test("settles as a push if both the dealer and player have blackjack", () => {
+    const s = baseState({
+      phase: "insurance",
+      playerHand: [card(1), card(11)], // player A,J = blackjack
+      dealerHand: [card(1), card(13)], // dealer A,K = blackjack
+      dealerHoleHidden: true,
+      insuranceDecision: null,
+    });
+    const next = engine.declineInsurance(s);
+    expect(next.outcome).toBe("push");
+  });
+});
+
+describe("takeInsurance", () => {
+  test("grades taking insurance as incorrect", () => {
+    const s = baseState({
+      phase: "insurance",
+      playerHand: [card(10), card(6)],
+      dealerHand: [card(1), card(9)],
+      dealerHoleHidden: true,
+      insuranceDecision: null,
+    });
+    const next = engine.takeInsurance(s);
+    expect(next.insuranceDecision).toBe("taken");
+    expect(next.correctDecisions).toBe(0);
+    expect(next.totalDecisions).toBe(1);
+    expect(next.phase).toBe("player-turn");
   });
 });

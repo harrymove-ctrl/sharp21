@@ -1,7 +1,7 @@
 import { type PlayingCard, drawCard, handValue } from "./cards";
 import { optimalAction, type Action } from "./strategy";
 
-export type Phase = "betting" | "player-turn" | "dealer-turn" | "round-over";
+export type Phase = "betting" | "insurance" | "player-turn" | "dealer-turn" | "round-over";
 export type Outcome = "win" | "lose" | "push" | "surrender";
 
 export interface DecisionRecord {
@@ -25,6 +25,7 @@ export interface GameState {
   correctDecisions: number;
   totalDecisions: number;
   handDecisions: DecisionRecord[];
+  insuranceDecision: "taken" | "declined" | null;
 }
 
 export const BET_OPTIONS = [1, 2, 5] as const;
@@ -42,6 +43,7 @@ export function initialState(): GameState {
     correctDecisions: 0,
     totalDecisions: 0,
     handDecisions: [],
+    insuranceDecision: null,
   };
 }
 
@@ -55,7 +57,7 @@ function recordDecision(state: GameState, action: Action, canDouble: boolean, ca
 export function placeBet(state: GameState, wager: number): GameState {
   const playerHand = [drawCard(), drawCard()];
   const dealerHand = [drawCard(), drawCard()];
-  let next: GameState = {
+  const next: GameState = {
     ...state,
     phase: "player-turn",
     wager,
@@ -65,13 +67,48 @@ export function placeBet(state: GameState, wager: number): GameState {
     outcome: null,
     lastMessage: null,
     handDecisions: [],
+    insuranceDecision: null,
   };
 
+  const dealerShowsAce = dealerHand[0].rank === 1;
+  if (dealerShowsAce) {
+    return { ...next, phase: "insurance" };
+  }
+
   if (handValue(playerHand).isBlackjack || handValue(dealerHand).isBlackjack) {
-    next = { ...next, dealerHoleHidden: false };
-    return settle(next);
+    return settle({ ...next, dealerHoleHidden: false });
   }
   return next;
+}
+
+/**
+ * Insurance is always -EV for a basic-strategy player (see
+ * strategy.ts's shouldTakeInsurance) regardless of the player's own hand,
+ * so it's graded as a plain correct/incorrect call rather than through
+ * recordDecision (which is shaped around a player-hand total that doesn't
+ * apply to a side bet). It still counts toward the running
+ * correctDecisions/totalDecisions the same way any other decision does.
+ */
+function resolveInsurance(state: GameState, decision: "taken" | "declined"): GameState {
+  const correct = decision === "declined";
+  const next: GameState = {
+    ...state,
+    insuranceDecision: decision,
+    correctDecisions: state.correctDecisions + (correct ? 1 : 0),
+    totalDecisions: state.totalDecisions + 1,
+  };
+  if (handValue(next.playerHand).isBlackjack || handValue(next.dealerHand).isBlackjack) {
+    return settle({ ...next, dealerHoleHidden: false });
+  }
+  return { ...next, phase: "player-turn" };
+}
+
+export function declineInsurance(state: GameState): GameState {
+  return resolveInsurance(state, "declined");
+}
+
+export function takeInsurance(state: GameState): GameState {
+  return resolveInsurance(state, "taken");
 }
 
 export function hit(state: GameState): GameState {
