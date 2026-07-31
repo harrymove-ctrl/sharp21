@@ -6,6 +6,7 @@ import { BotVsBot } from "./BotVsBot";
 import { OpenNimiqPay } from "./OpenNimiqPay";
 import { ScanToPay } from "./ScanToPay";
 import { ConnectWallet } from "./ConnectWallet";
+import { FaucetButton } from "./FaucetButton";
 
 export type Mode = "pve" | "bots";
 
@@ -92,9 +93,17 @@ export function GameWidget({
       {mode === "pve" && pve.realMoney && (
         <div className="shrink-0">
           {pve.account ? (
-            <span className="sk-body text-[0.65rem]" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Connected: {pve.account.split(" ")[0]}…{pve.account.split(" ").slice(-1)[0]}
-            </span>
+            <div className="flex flex-col items-center gap-1">
+              <span className="sk-body text-[0.65rem]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                Connected: {pve.account.split(" ")[0]}…{pve.account.split(" ").slice(-1)[0]}
+              </span>
+              {/* Hub wallets are commonly freshly-created/unfunded testnet
+                  accounts - the mini-app and scan-to-pay paths don't need
+                  this (Nimiq Pay manages its own testnet funding, and a
+                  scan-to-pay sender's address is only known after they've
+                  already paid successfully). */}
+              {pve.usingHub && <FaucetButton address={pve.account} />}
+            </div>
           ) : (
             <button
               type="button"
